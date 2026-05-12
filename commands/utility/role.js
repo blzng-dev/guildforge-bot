@@ -186,7 +186,7 @@ module.exports = {
                 .addBooleanOption((option) =>
                     option
                         .setName("ephemeral")
-                        .setDescription("Whether the reply should be ephemeral (default: true)")
+                        .setDescription("Whether the reply should be ephemeral (default: false)")
                         .setRequired(false)
                 )
         )
@@ -391,12 +391,12 @@ module.exports = {
         }
 
         const subcommand = interaction.options.getSubcommand();
-        
+
         let isEphemeral = true;
         if (subcommand === "info") {
-            isEphemeral = interaction.options.getBoolean("ephemeral") ?? true;
+            isEphemeral = interaction.options.getBoolean("ephemeral") ?? false;
         }
-        
+
         if (subcommand !== "create-bulk") {
             await interaction.deferReply({ flags: isEphemeral ? MessageFlags.Ephemeral : undefined });
         }
@@ -824,16 +824,16 @@ module.exports = {
         // ============================
         else if (subcommand === "info") {
             const role = interaction.options.getRole("role");
-            
+
             try {
                 // Fetch members to ensure cache is accurate for this role
                 await interaction.guild.members.fetch();
-                
+
                 const roleMembers = role.members;
                 const memberIds = roleMembers.map(m => m.id);
-                
+
                 const permissions = role.permissions.toArray().join(", ") || "None";
-                
+
                 const content = `Role Info for ${role}
 - ${role.name} (${role.id})
 - hoisted: ${role.hoist}
@@ -847,7 +847,7 @@ module.exports = {
                     Buffer.from(jsonString),
                     { name: `role_members_${role.id}.json` }
                 );
-                
+
                 await interaction.editReply({
                     content: content,
                     files: [attachment],
@@ -1900,7 +1900,7 @@ module.exports = {
 
             const executeReorder = async (rolesToMove) => {
                 rolesToMove = rolesToMove.filter(r => r.id !== interaction.guild.id && r.id !== pivotRole.id);
-                
+
                 if (rolesToMove.length === 0) {
                     return interaction.editReply({ content: "No valid roles selected to move.", components: [] });
                 }
@@ -1928,7 +1928,7 @@ module.exports = {
                 if (pivotIndex === -1) {
                     return interaction.editReply({ content: "Pivot role not found." });
                 }
-                
+
                 rolesToMove.sort((a, b) => a.position - b.position);
 
                 const insertIndex = positionOption === "above" ? pivotIndex + 1 : pivotIndex;
@@ -1957,7 +1957,7 @@ module.exports = {
                 const highPos = Math.max(pos1, pos2);
                 const rolesInRange = Array.from(interaction.guild.roles.cache.values())
                     .filter(r => r.position > lowPos && r.position < highPos);
-                
+
                 await executeReorder(rolesInRange);
             } else {
                 const row = new ActionRowBuilder().addComponents(
@@ -2005,7 +2005,7 @@ module.exports = {
 
                 collector.on("end", async (collected, reason) => {
                     if (reason === "time") {
-                        await interaction.editReply({ content: "Selection timed out.", components: [] }).catch(()=>{});
+                        await interaction.editReply({ content: "Selection timed out.", components: [] }).catch(() => { });
                     } else if (reason === "menu_selected") {
                         const btnCollector = response.createMessageComponentCollector({
                             filter: i => i.user.id === interaction.user.id && (i.customId === "confirm-reorder" || i.customId === "cancel-reorder"),
@@ -2025,7 +2025,7 @@ module.exports = {
 
                         btnCollector.on("end", (btnCollected, btnReason) => {
                             if (btnReason === "time") {
-                                interaction.editReply({ content: "Confirmation timed out.", components: [] }).catch(()=>{});
+                                interaction.editReply({ content: "Confirmation timed out.", components: [] }).catch(() => { });
                             }
                         });
                     }
