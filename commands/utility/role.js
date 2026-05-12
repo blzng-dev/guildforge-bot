@@ -175,6 +175,24 @@ module.exports = {
 
         .addSubcommand((subcommand) =>
             subcommand
+                .setName("info")
+                .setDescription("Displays information about a role and attaches member list.")
+                .addRoleOption((option) =>
+                    option
+                        .setName("role")
+                        .setDescription("The role to get info for")
+                        .setRequired(true)
+                )
+                .addBooleanOption((option) =>
+                    option
+                        .setName("ephemeral")
+                        .setDescription("Whether the reply should be ephemeral (default: true)")
+                        .setRequired(false)
+                )
+        )
+
+        .addSubcommand((subcommand) =>
+            subcommand
                 .setName("toggle")
                 .setDescription("adds or removes a specific role from a user.")
                 .addRoleOption((option) =>
@@ -373,8 +391,14 @@ module.exports = {
         }
 
         const subcommand = interaction.options.getSubcommand();
+        
+        let isEphemeral = true;
+        if (subcommand === "info") {
+            isEphemeral = interaction.options.getBoolean("ephemeral") ?? true;
+        }
+        
         if (subcommand !== "create-bulk") {
-            await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+            await interaction.deferReply({ flags: isEphemeral ? MessageFlags.Ephemeral : undefined });
         }
 
         // ============================
@@ -792,6 +816,46 @@ module.exports = {
                 await interaction.editReply({
                     content: "There was an error trying to scrape roles.",
                     flags: MessageFlags.Ephemeral,
+                });
+            }
+        }
+        // ============================
+        // === INFO Subcommand ======
+        // ============================
+        else if (subcommand === "info") {
+            const role = interaction.options.getRole("role");
+            
+            try {
+                // Fetch members to ensure cache is accurate for this role
+                await interaction.guild.members.fetch();
+                
+                const roleMembers = role.members;
+                const memberIds = roleMembers.map(m => m.id);
+                
+                const permissions = role.permissions.toArray().join(", ") || "None";
+                
+                const content = `Role Info for ${role}
+- ${role.name} (${role.id})
+- hoisted: ${role.hoist}
+- pingable: ${role.mentionable}
+- color: ${role.hexColor}
+- total members: ${roleMembers.size}
+- permissions: ${permissions}`;
+
+                const jsonString = JSON.stringify(memberIds, null, 4);
+                const attachment = new AttachmentBuilder(
+                    Buffer.from(jsonString),
+                    { name: `role_members_${role.id}.json` }
+                );
+                
+                await interaction.editReply({
+                    content: content,
+                    files: [attachment],
+                });
+            } catch (error) {
+                console.error("Error getting role info:", error);
+                await interaction.editReply({
+                    content: "An error occurred while trying to get role info.",
                 });
             }
         }
