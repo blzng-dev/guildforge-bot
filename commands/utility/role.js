@@ -193,6 +193,48 @@ module.exports = {
 
         .addSubcommand((subcommand) =>
             subcommand
+                .setName("export")
+                .setDescription("Exports info for multiple roles as JSON and optionally deletes them.")
+                .addRoleOption((option) =>
+                    option
+                        .setName("target")
+                        .setDescription("A single role to export")
+                        .setRequired(false)
+                )
+                .addRoleOption((option) =>
+                    option
+                        .setName("start_role")
+                        .setDescription("Start of role range to export (exclusive)")
+                        .setRequired(false)
+                )
+                .addRoleOption((option) =>
+                    option
+                        .setName("end_role")
+                        .setDescription("End of role range to export (exclusive)")
+                        .setRequired(false)
+                )
+                .addBooleanOption((option) =>
+                    option
+                        .setName("ephemeral")
+                        .setDescription("Whether the reply should be ephemeral (default: false)")
+                        .setRequired(false)
+                )
+        )
+
+        .addSubcommand((subcommand) =>
+            subcommand
+                .setName("import")
+                .setDescription("Imports roles from a JSON file or text.")
+                .addAttachmentOption((option) =>
+                    option
+                        .setName("file")
+                        .setDescription("The exported JSON file")
+                        .setRequired(false)
+                )
+        )
+
+        .addSubcommand((subcommand) =>
+            subcommand
                 .setName("toggle")
                 .setDescription("adds or removes a specific role from a user.")
                 .addRoleOption((option) =>
@@ -391,13 +433,18 @@ module.exports = {
         }
 
         const subcommand = interaction.options.getSubcommand();
+        const file = interaction.options.getAttachment("file");
 
         let isEphemeral = true;
-        if (subcommand === "info") {
+        if (subcommand === "info" || subcommand === "export") {
             isEphemeral = interaction.options.getBoolean("ephemeral") ?? false;
         }
 
-        if (subcommand !== "create-bulk") {
+        // We cannot show a modal if we defer.
+        // So if subcommand is import and no file is provided, we do NOT defer.
+        const shouldDefer = subcommand !== "create-bulk" && !(subcommand === "import" && !file);
+
+        if (shouldDefer) {
             await interaction.deferReply({ flags: isEphemeral ? MessageFlags.Ephemeral : undefined });
         }
 
@@ -826,9 +873,16 @@ module.exports = {
             const role = interaction.options.getRole("role");
 
             try {
-                // Fetch members for this specific role
-                const roleMembers = await interaction.guild.members.fetch({ role: role.id });
-                const memberIds = roleMembers.map(m => m.id);
+                // Fetch members for this specific role with a fallback to cache if it times out
+                let roleMembers;
+                try {
+                    roleMembers = await interaction.guild.members.fetch({ role: role.id });
+                } catch (err) {
+                    console.warn("Fetch timed out, falling back to cache:", err);
+                    roleMembers = role.members;
+                }
+                // Filter to ensure we only get members who actually have the role
+                const memberIds = roleMembers.filter(m => m.roles.cache.has(role.id)).map(m => m.id);
 
                 const permissions = role.permissions.toArray().join(", ") || "None";
 
@@ -837,7 +891,7 @@ module.exports = {
 - hoisted: ${role.hoist}
 - pingable: ${role.mentionable}
 - color: ${role.hexColor}
-- total members: ${roleMembers.size}
+- total members: ${memberIds.length}
 - permissions: ${permissions}`;
 
                 const jsonString = JSON.stringify(memberIds, null, 4);
@@ -855,6 +909,269 @@ module.exports = {
                 await interaction.editReply({
                     content: "An error occurred while trying to get role info.",
                 });
+            }
+        }
+        // ============================
+        // === EXPORT Subcommand ====
+        // ============================
+        else if (subcommand === "export") {
+            const targetRole = interaction.options.getRole("target");
+            const startRole = interaction.options.getRole("start_role");
+            const endRole = interaction.options.getRole("end_role");
+
+            let rolesToExport = [];
+
+            if (startRole && endRole) {
+                const pos1 = startRole.position;
+                const pos2 = endRole.position;
+                const lowPos = Math.min(pos1, pos2);
+                const highPos = Math.max(pos1, pos2);
+
+                rolesToExport = Array.from(interaction.guild.roles.cache.values()).filter(
+                    (r) => r.position > lowPos && r.position < highPos
+                );
+            } else if (targetRole) {
+                rolesToExport = [targetRole];
+            } else {
+                // Show role select menu
+                const row = new ActionRowBuilder().addComponents(
+                    new RoleSelectMenuBuilder()
+                        .setCustomId("export-role-menu")
+                        .setPlaceholder("Select roles to export")
+                        .setMinValues(1)
+                        .setMaxValues(25)
+                );
+
+                const response = await interaction.editReply({
+                    content: "Please select the roles you want to export:",
+                    components: [row],
+                });
+
+                try {
+                    const selection = await response.awaitMessageComponent({
+                        filter: (i) => i.customId === "export-role-menu" && i.user.id === interaction.user.id,
+                        time: 60000,
+                    });
+
+                    rolesToExport = selection.values.map(id => interaction.guild.roles.cache.get(id)).filter(Boolean);
+                    await selection.deferUpdate();
+                } catch (error) {
+                    return interaction.editReply({ content: "Selection timed out.", components: [] });
+                }
+            }
+
+            if (rolesToExport.length === 0) {
+                return interaction.editReply({ content: "No roles selected or found to export.", components: [] });
+            }
+
+            try {
+                // Fetch all members once to ensure cache is full
+                await interaction.guild.members.fetch();
+
+                const exportData = [];
+
+                for (const role of rolesToExport) {
+                    // Explicitly filter cached members to ensure only those with the role are included
+                    const memberIds = interaction.guild.members.cache
+                        .filter(m => m.roles.cache.has(role.id))
+                        .map(m => m.id);
+                    exportData.push({
+                        name: role.name,
+                        color: role.hexColor,
+                        id: role.id,
+                        hoisted: role.hoist,
+                        pingable: role.mentionable,
+                        permissions: role.permissions.toArray(),
+                        total: memberIds.length,
+                        members: memberIds
+                    });
+                }
+
+                const jsonString = JSON.stringify(exportData, null, 4);
+                const attachment = new AttachmentBuilder(
+                    Buffer.from(jsonString),
+                    { name: `exported_roles_${interaction.id}.json` }
+                );
+
+                const deleteButton = new ButtonBuilder()
+                    .setCustomId(`delete-exported-roles-${interaction.id}`)
+                    .setLabel("Delete These Roles")
+                    .setStyle(ButtonStyle.Danger);
+
+                let replyContent = `Successfully exported ${exportData.length} roles.`;
+                if (exportData.length === 1) {
+                    replyContent = `Role export for **${exportData[0].name}** (${exportData[0].id})`;
+                }
+
+                const reply = await interaction.editReply({
+                    content: replyContent,
+                    files: [attachment],
+                    components: [row],
+                });
+
+                const collector = reply.createMessageComponentCollector({
+                    filter: i => i.customId === `delete-exported-roles-${interaction.id}` && i.user.id === interaction.user.id,
+                    time: 60000,
+                });
+
+                collector.on("collect", async (i) => {
+                    await i.deferUpdate();
+                    await i.editReply({ content: "Deleting roles...", components: [] });
+
+                    let deletedCount = 0;
+                    let failedCount = 0;
+                    const botHighest = interaction.guild.members.me.roles.highest;
+
+                    for (const role of rolesToExport) {
+                        try {
+                            if (role.position >= botHighest.position) {
+                                console.log(`Skipping role ${role.name} due to hierarchy.`);
+                                failedCount++;
+                                continue;
+                            }
+                            await role.delete(`Exported and deleted by ${interaction.user.tag}`);
+                            deletedCount++;
+                        } catch (error) {
+                            console.error(`Failed to delete role ${role.name}:`, error);
+                            failedCount++;
+                        }
+                    }
+
+                    await i.editReply({
+                        content: `Deletion finished. Deleted: ${deletedCount}. Failed: ${failedCount}.`,
+                        components: [],
+                    });
+                    collector.stop();
+                });
+
+                collector.on("end", (collected, reason) => {
+                    if (reason === "time") {
+                        deleteButton.setDisabled(true);
+                        interaction.editReply({
+                            components: [new ActionRowBuilder().addComponents(deleteButton)],
+                        }).catch(() => { });
+                    }
+                });
+
+            } catch (error) {
+                console.error("Error exporting roles:", error);
+                await interaction.editReply({
+                    content: "An error occurred while trying to export roles.",
+                    components: [],
+                });
+            }
+        }
+        // ============================
+        // === IMPORT Subcommand ====
+        // ============================
+        else if (subcommand === "import") {
+            const file = interaction.options.getAttachment("file");
+            let jsonData;
+            let targetInteraction = interaction;
+
+            if (file) {
+                try {
+                    const response = await fetch(file.url);
+                    jsonData = await response.json();
+                } catch (error) {
+                    console.error("Error reading attached file:", error);
+                    return interaction.editReply({ content: "Failed to read the attached file. Make sure it is valid JSON." });
+                }
+            } else {
+                const modal = new ModalBuilder()
+                    .setCustomId('roleImportModal')
+                    .setTitle('Import Roles');
+
+                const jsonInput = new TextInputBuilder()
+                    .setCustomId('jsonInput')
+                    .setLabel("JSON Data (Object or Array)")
+                    .setStyle(TextInputStyle.Paragraph)
+                    .setRequired(true)
+                    .setPlaceholder("[\n  {\n    \"name\": \"Role Name\",\n    ...\n  }\n]")
+                    .setMaxLength(4000);
+
+                const row = new ActionRowBuilder().addComponents(jsonInput);
+                modal.addComponents(row);
+
+                await interaction.showModal(modal);
+
+                try {
+                    const modalSubmit = await interaction.awaitModalSubmit({
+                        time: 300000,
+                        filter: i => i.user.id === interaction.user.id && i.customId === 'roleImportModal'
+                    });
+
+                    await modalSubmit.deferReply({ flags: MessageFlags.Ephemeral });
+
+                    const input = modalSubmit.fields.getTextInputValue('jsonInput');
+                    jsonData = JSON.parse(input);
+                    
+                    targetInteraction = modalSubmit;
+                } catch (error) {
+                    if (error.code !== 'InteractionCollectorError') {
+                        console.error("Error in role import modal:", error);
+                    }
+                    return;
+                }
+            }
+
+            try {
+                let rolesToProcess = [];
+                if (Array.isArray(jsonData)) {
+                    rolesToProcess = jsonData;
+                } else if (typeof jsonData === "object") {
+                    rolesToProcess = [jsonData];
+                } else {
+                    return targetInteraction.editReply({ content: "Invalid JSON format. Expected an object or array of objects." });
+                }
+
+                let createdCount = 0;
+                let restoredCount = 0;
+                let assignedCount = 0;
+                let skippedMembers = 0;
+
+                for (const roleData of rolesToProcess) {
+                    let role = interaction.guild.roles.cache.find(r => r.id === roleData.id || r.name === roleData.name);
+                    
+                    if (!role) {
+                        // Create the role
+                        role = await interaction.guild.roles.create({
+                            name: roleData.name,
+                            color: roleData.color,
+                            hoist: roleData.hoisted,
+                            mentionable: roleData.pingable,
+                            permissions: roleData.permissions ? roleData.permissions : [],
+                        });
+                        createdCount++;
+                    } else {
+                        restoredCount++;
+                    }
+
+                    // Assign to users
+                    if (Array.isArray(roleData.members)) {
+                        for (const memberId of roleData.members) {
+                            try {
+                                const member = await interaction.guild.members.fetch(memberId).catch(() => null);
+                                if (member) {
+                                    await member.roles.add(role);
+                                    assignedCount++;
+                                } else {
+                                    skippedMembers++;
+                                }
+                            } catch (err) {
+                                console.error(`Failed to assign role ${role.name} to member ${memberId}:`, err);
+                            }
+                        }
+                    }
+                }
+
+                await targetInteraction.editReply({
+                    content: `Import finished.\n- Roles Created: ${createdCount}\n- Roles Existing/Restored: ${restoredCount}\n- Role Assignments: ${assignedCount}\n- Skipped Members (not in guild): ${skippedMembers}`,
+                });
+
+            } catch (error) {
+                console.error("Error processing import:", error);
+                await targetInteraction.editReply({ content: "An error occurred while processing the import. Make sure the JSON structure is correct." });
             }
         }
         // ============================
