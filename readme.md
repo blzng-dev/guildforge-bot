@@ -29,8 +29,8 @@ Manage your server's channel structure effectively.
     -   Syncs a channel's permissions to match its parent category.
 -   **/channel clear**
     -   Wipes all permission overwrites from a selected channel.
--   **/channel delete** (⚠️ can be very destructive)
-    -   Deletes a specific channel or bulk deletes a category and its contents.
+-   **/channel delete**
+    -   Deletes a specific channel or bulk deletes a category and its contents. **Note:** Safely restricts deletion to channels that contain 0 messages to prevent accidental data loss.
 
 ### Cw Role Management (`/role`)
 
@@ -55,10 +55,12 @@ A complete suite for handling server roles.
 -   **/role clear**
     -   Strips all permissions from a target role.
 -   **/role delete**
-    -   Deletes roles from the server. Supports three modes:
+    -   Deletes roles from the server. **Note:** Only allows deleting roles that currently have 0 members assigned. Supports three modes:
         -   **Single:** Select a specific role to delete.
         -   **Range:** Deletes all roles strictly between two boundary roles (`start_role` and `end_role`).
         -   **Bulk:** Leave options empty to open a multi-select menu to delete up to 10 roles at once.
+-   **/role reorder**
+    -   Re-arranges roles by moving a single role, a range of roles, or multiple selected roles above or below a specified pivot role.
 
 ### wm Server Aesthetics (`/divider`)
 

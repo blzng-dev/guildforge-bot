@@ -8,6 +8,9 @@ const {
     ComponentType,
     AttachmentBuilder,
     RoleSelectMenuBuilder,
+    ModalBuilder,
+    TextInputBuilder,
+    TextInputStyle,
 } = require("discord.js");
 const fs = require("node:fs/promises");
 const path = require("node:path");
@@ -117,6 +120,12 @@ module.exports = {
                         .setDescription("allow anyone to @mention this role")
                         .setRequired(false)
                 )
+        )
+
+        .addSubcommand((subcommand) =>
+            subcommand
+                .setName("create-bulk")
+                .setDescription("creates multiple roles at once via modal input")
         )
 
         .addSubcommand((subcommand) =>
@@ -310,6 +319,45 @@ module.exports = {
                         )
                         .setRequired(false)
                 )
+        )
+        .addSubcommand((subcommand) =>
+            subcommand
+                .setName("reorder")
+                .setDescription("re-arrange roles by moving them above or below a pivot role.")
+                .addRoleOption((option) =>
+                    option
+                        .setName("pivot")
+                        .setDescription("The role to place the selected roles above/below.")
+                        .setRequired(true)
+                )
+                .addStringOption((option) =>
+                    option
+                        .setName("position")
+                        .setDescription("Place roles above or below the pivot? (default: below)")
+                        .addChoices(
+                            { name: "Above", value: "above" },
+                            { name: "Below", value: "below" }
+                        )
+                        .setRequired(false)
+                )
+                .addRoleOption((option) =>
+                    option
+                        .setName("target")
+                        .setDescription("A single role to move.")
+                        .setRequired(false)
+                )
+                .addRoleOption((option) =>
+                    option
+                        .setName("range_start")
+                        .setDescription("Start of a role range to move.")
+                        .setRequired(false)
+                )
+                .addRoleOption((option) =>
+                    option
+                        .setName("range_end")
+                        .setDescription("End of a role range to move.")
+                        .setRequired(false)
+                )
         ),
 
     async execute(interaction) {
@@ -325,12 +373,90 @@ module.exports = {
         }
 
         const subcommand = interaction.options.getSubcommand();
-        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        if (subcommand !== "create-bulk") {
+            await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        }
 
+        // ============================
+        // === CREATE-BULK Subcommand ===
+        // ============================
+        if (subcommand === "create-bulk") {
+            const modal = new ModalBuilder()
+                .setCustomId('bulkRoleCreateModal')
+                .setTitle('Bulk Create Roles');
+
+            const rolesInput = new TextInputBuilder()
+                .setCustomId('rolesInput')
+                .setLabel("Names (comma or newline separated)")
+                .setStyle(TextInputStyle.Paragraph)
+                .setRequired(true)
+                .setPlaceholder("Role 1\\nRole 2, Role 3")
+                .setMaxLength(4000);
+
+            const row = new ActionRowBuilder().addComponents(rolesInput);
+            modal.addComponents(row);
+
+            await interaction.showModal(modal);
+
+            try {
+                const modalSubmit = await interaction.awaitModalSubmit({
+                    time: 300000,
+                    filter: i => i.user.id === interaction.user.id && i.customId === 'bulkRoleCreateModal'
+                });
+
+                await modalSubmit.deferReply({ flags: MessageFlags.Ephemeral });
+
+                const input = modalSubmit.fields.getTextInputValue('rolesInput');
+                // Split by newline or comma, then trim and remove empty
+                const roleNames = input
+                    .split(/,|\\n/)
+                    .map(r => r.trim())
+                    .filter(r => r.length > 0);
+
+                if (roleNames.length === 0) {
+                    return modalSubmit.editReply({ content: "No valid role names provided.", flags: MessageFlags.Ephemeral });
+                }
+
+                if (roleNames.length > 50) {
+                    return modalSubmit.editReply({ content: "Please limit to 50 roles at a time.", flags: MessageFlags.Ephemeral });
+                }
+
+                let createdCount = 0;
+                let failedCount = 0;
+                const failedNames = [];
+
+                for (const name of roleNames) {
+                    try {
+                        await interaction.guild.roles.create({
+                            name: name,
+                            permissions: [],
+                            hoist: false,
+                            mentionable: false
+                        });
+                        createdCount++;
+                    } catch (error) {
+                        console.error(`Failed to create role ${name}:`, error);
+                        failedCount++;
+                        failedNames.push(name);
+                    }
+                }
+
+                let resultMsg = `Successfully created ${createdCount} roles.`;
+                if (failedCount > 0) {
+                    resultMsg += `\\nFailed to create ${failedCount} roles: ${failedNames.join(', ')}`;
+                }
+
+                await modalSubmit.editReply({ content: resultMsg, flags: MessageFlags.Ephemeral });
+            } catch (error) {
+                if (error.code !== 'InteractionCollectorError') {
+                    console.error("Error in bulk role creation modal:", error);
+                }
+            }
+        }
         // ============================
         // === CREATE Subcommand (permissions preset logic removed) ===
         // ============================
-        if (subcommand === "create") {
+        else if (subcommand === "create") {
             const roleName = interaction.options.getString("name");
             const color = interaction.options.getString("color");
             const hoisted = interaction.options.getBoolean("hoist");
@@ -1150,6 +1276,10 @@ module.exports = {
                         skippedRoles.push(`${role.name} (Managed/Integration)`);
                         continue;
                     }
+                    if (role.members.size > 0) {
+                        skippedRoles.push(`${role.name} (Has Members)`);
+                        continue;
+                    }
                     rolesToDelete.push(role);
                 }
 
@@ -1284,6 +1414,13 @@ module.exports = {
                 if (targetRole.id === interaction.guild.id) {
                     return interaction.editReply({
                         content: `Cannot delete the @everyone role.`,
+                        flags: MessageFlags.Ephemeral,
+                    });
+                }
+
+                if (targetRole.members.size > 0) {
+                    return interaction.editReply({
+                        content: `Cannot delete the role "${targetRole.name}" because it currently has ${targetRole.members.size} member(s).`,
                         flags: MessageFlags.Ephemeral,
                     });
                 }
@@ -1685,6 +1822,150 @@ module.exports = {
                         flags: MessageFlags.Ephemeral,
                     });
                 }
+            }
+        }
+        // ============================
+        // === REORDER Subcommand ===
+        // ============================
+        else if (subcommand === "reorder") {
+            const pivotRole = interaction.options.getRole("pivot");
+            const positionOption = interaction.options.getString("position") || "below";
+            const targetRole = interaction.options.getRole("target");
+            const rangeStart = interaction.options.getRole("range_start");
+            const rangeEnd = interaction.options.getRole("range_end");
+
+            const executeReorder = async (rolesToMove) => {
+                rolesToMove = rolesToMove.filter(r => r.id !== interaction.guild.id && r.id !== pivotRole.id);
+                
+                if (rolesToMove.length === 0) {
+                    return interaction.editReply({ content: "No valid roles selected to move.", components: [] });
+                }
+
+                const botHighestPos = interaction.guild.members.me.roles.highest.position;
+                if (pivotRole.position >= botHighestPos) {
+                    return interaction.editReply({ content: "Cannot place roles relative to a pivot role higher than my highest role." });
+                }
+
+                for (const r of rolesToMove) {
+                    if (r.position >= botHighestPos) {
+                        return interaction.editReply({ content: `Cannot move role ${r.name} because it is higher or equal to my highest role.` });
+                    }
+                }
+
+                await interaction.editReply({ content: "Calculating new role positions...", components: [] });
+
+                const allRoles = Array.from(interaction.guild.roles.cache.values())
+                    .sort((a, b) => a.position - b.position);
+
+                const rolesToMoveIds = new Set(rolesToMove.map(r => r.id));
+                const remainingRoles = allRoles.filter(r => !rolesToMoveIds.has(r.id));
+
+                const pivotIndex = remainingRoles.findIndex(r => r.id === pivotRole.id);
+                if (pivotIndex === -1) {
+                    return interaction.editReply({ content: "Pivot role not found." });
+                }
+                
+                rolesToMove.sort((a, b) => a.position - b.position);
+
+                const insertIndex = positionOption === "above" ? pivotIndex + 1 : pivotIndex;
+                remainingRoles.splice(insertIndex, 0, ...rolesToMove);
+
+                const positionUpdates = remainingRoles.map((role, index) => ({
+                    role: role.id,
+                    position: index
+                }));
+
+                try {
+                    await interaction.guild.roles.setPositions(positionUpdates);
+                    await interaction.editReply({ content: `✅ Successfully moved ${rolesToMove.length} roles ${positionOption} ${pivotRole.name}.` });
+                } catch (error) {
+                    console.error("Error setting role positions:", error);
+                    await interaction.editReply({ content: "❌ Failed to reorder roles due to an error." });
+                }
+            };
+
+            if (targetRole) {
+                await executeReorder([targetRole]);
+            } else if (rangeStart && rangeEnd) {
+                const pos1 = rangeStart.position;
+                const pos2 = rangeEnd.position;
+                const lowPos = Math.min(pos1, pos2);
+                const highPos = Math.max(pos1, pos2);
+                const rolesInRange = Array.from(interaction.guild.roles.cache.values())
+                    .filter(r => r.position > lowPos && r.position < highPos);
+                
+                await executeReorder(rolesInRange);
+            } else {
+                const row = new ActionRowBuilder().addComponents(
+                    new RoleSelectMenuBuilder()
+                        .setCustomId("reorder-role-menu")
+                        .setPlaceholder("Select roles to move")
+                        .setMinValues(1)
+                        .setMaxValues(10)
+                );
+
+                const confirmRow = new ActionRowBuilder().addComponents(
+                    new ButtonBuilder()
+                        .setCustomId("confirm-reorder")
+                        .setLabel("Confirm Move")
+                        .setStyle(ButtonStyle.Success),
+                    new ButtonBuilder()
+                        .setCustomId("cancel-reorder")
+                        .setLabel("Cancel")
+                        .setStyle(ButtonStyle.Secondary)
+                );
+
+                const response = await interaction.editReply({
+                    content: `Select the roles you want to move **${positionOption}** ${pivotRole.name}:`,
+                    components: [row]
+                });
+
+                const collector = response.createMessageComponentCollector({
+                    filter: i => i.user.id === interaction.user.id,
+                    time: 60000
+                });
+
+                let selectedRoles = [];
+
+                collector.on("collect", async i => {
+                    await i.deferUpdate();
+                    if (i.customId === "reorder-role-menu") {
+                        selectedRoles = i.values;
+                        await interaction.editReply({
+                            content: `You've selected ${selectedRoles.length} roles to move **${positionOption}** ${pivotRole.name}. Confirm?`,
+                            components: [confirmRow]
+                        });
+                        collector.stop("menu_selected");
+                    }
+                });
+
+                collector.on("end", async (collected, reason) => {
+                    if (reason === "time") {
+                        await interaction.editReply({ content: "Selection timed out.", components: [] }).catch(()=>{});
+                    } else if (reason === "menu_selected") {
+                        const btnCollector = response.createMessageComponentCollector({
+                            filter: i => i.user.id === interaction.user.id && (i.customId === "confirm-reorder" || i.customId === "cancel-reorder"),
+                            time: 30000,
+                            max: 1
+                        });
+
+                        btnCollector.on("collect", async i => {
+                            await i.deferUpdate();
+                            if (i.customId === "cancel-reorder") {
+                                await interaction.editReply({ content: "Role reorder cancelled.", components: [] });
+                            } else if (i.customId === "confirm-reorder") {
+                                const roleObjects = selectedRoles.map(id => interaction.guild.roles.cache.get(id)).filter(Boolean);
+                                await executeReorder(roleObjects);
+                            }
+                        });
+
+                        btnCollector.on("end", (btnCollected, btnReason) => {
+                            if (btnReason === "time") {
+                                interaction.editReply({ content: "Confirmation timed out.", components: [] }).catch(()=>{});
+                            }
+                        });
+                    }
+                });
             }
         }
     },

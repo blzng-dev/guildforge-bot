@@ -441,6 +441,21 @@ module.exports = {
                         content: `❌ **Error:** Could not find the target server with ID \`${targetGuildId}\`. Make sure the bot is in that server.`,
                     });
 
+                // --- NEW: Security Checks for Cross-Server Actions ---
+                const sourceMember = await sourceGuild.members.fetch(interaction.user.id).catch(() => null);
+                if (!sourceMember || !sourceMember.permissions.has(PermissionsBitField.Flags.ManageGuild)) {
+                    return interaction.editReply({
+                        content: `❌ **Error:** You must be a member of the source server and have the \`Manage Server\` permission to clone channels from it.`,
+                    });
+                }
+
+                const targetMember = await targetGuild.members.fetch(interaction.user.id).catch(() => null);
+                if (!targetMember || !targetMember.permissions.has(PermissionsBitField.Flags.ManageGuild)) {
+                    return interaction.editReply({
+                        content: `❌ **Error:** You must be a member of the target server and have the \`Manage Server\` permission to clone channels to it.`,
+                    });
+                }
+
                 // === Clone a single channel ===
                 if (subcommand === "channel") {
                     const sourceChannelId =
@@ -1517,6 +1532,14 @@ module.exports = {
                             // Delete each child channel
                             for (const channel of childChannels.values()) {
                                 if (!channel) continue;
+                                if (channel.messages) {
+                                    const msgs = await channel.messages.fetch({ limit: 1 }).catch(() => null);
+                                    if (msgs && msgs.size > 0) {
+                                        failedCount++;
+                                        failedChannels.push(`${channel.name} (Has Messages)`);
+                                        continue;
+                                    }
+                                }
                                 try {
                                     await channel.delete(
                                         `Deleted by ${interaction.user.tag} as part of category deletion`
@@ -1568,6 +1591,15 @@ module.exports = {
                     }
 
                     // Now delete the target itself
+                    if (targetChannel.messages) {
+                        const msgs = await targetChannel.messages.fetch({ limit: 1 }).catch(() => null);
+                        if (msgs && msgs.size > 0) {
+                            return interaction.editReply({
+                                content: `Cannot delete channel "${targetChannel.name}" because it contains messages.`,
+                                flags: MessageFlags.Ephemeral
+                            });
+                        }
+                    }
                     const channelName = targetChannel.name;
                     const channelType = targetChannel?.type;
                     const channelId = targetChannel.id;
@@ -1812,6 +1844,15 @@ module.exports = {
                                                 "Unknown Channel"
                                             );
                                             continue;
+                                        }
+
+                                        if (channel.messages) {
+                                            const msgs = await channel.messages.fetch({ limit: 1 }).catch(() => null);
+                                            if (msgs && msgs.size > 0) {
+                                                errorCount++;
+                                                errorChannels.push(`${channel.name} (Has Messages)`);
+                                                continue;
+                                            }
                                         }
 
                                         try {
