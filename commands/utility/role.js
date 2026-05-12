@@ -826,10 +826,8 @@ module.exports = {
             const role = interaction.options.getRole("role");
 
             try {
-                // Fetch members to ensure cache is accurate for this role
-                await interaction.guild.members.fetch();
-
-                const roleMembers = role.members;
+                // Fetch members for this specific role
+                const roleMembers = await interaction.guild.members.fetch({ role: role.id });
                 const memberIds = roleMembers.map(m => m.id);
 
                 const permissions = role.permissions.toArray().join(", ") || "None";
