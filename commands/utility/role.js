@@ -172,6 +172,24 @@ module.exports = {
             subcommand
                 .setName("list")
                 .setDescription("lists all roles in the server")
+                .addBooleanOption((option) =>
+                    option
+                        .setName("hoisted")
+                        .setDescription("Filter by hoisted roles")
+                        .setRequired(false)
+                )
+                .addBooleanOption((option) =>
+                    option
+                        .setName("pingable")
+                        .setDescription("Filter by pingable roles")
+                        .setRequired(false)
+                )
+                .addBooleanOption((option) =>
+                    option
+                        .setName("has_admin")
+                        .setDescription("Filter by roles with Administrator permission")
+                        .setRequired(false)
+                )
         )
 
         .addSubcommand((subcommand) =>
@@ -662,17 +680,21 @@ module.exports = {
         // ============================
         else if (subcommand === "list") {
             try {
-                // Fetch roles, sort by position descending (highest first)
-                const roles = interaction.guild.roles.cache
-                    .sort((a, b) => b.position - a.position)
-                    // Format as markdown list items
-                    .map((role) => `- ${role.toString()}`);
+                const hoisted = interaction.options.getBoolean("hoisted");
+                const pingable = interaction.options.getBoolean("pingable");
+                const hasAdmin = interaction.options.getBoolean("has_admin");
 
-                // Remove @everyone if it's included (it usually has position 0)
-                const roleList = roles.filter(
-                    (listItem) =>
-                        !listItem.includes("<@&" + interaction.guild.id + ">")
-                );
+                let roles = interaction.guild.roles.cache;
+
+                if (hoisted !== null) roles = roles.filter(r => r.hoist === hoisted);
+                if (pingable !== null) roles = roles.filter(r => r.mentionable === pingable);
+                if (hasAdmin !== null) roles = roles.filter(r => r.permissions.has(PermissionsBitField.Flags.Administrator) === hasAdmin);
+
+                // Sort by position descending (highest first) and remove @everyone
+                const roleList = roles
+                    .filter(role => role.id !== interaction.guild.id)
+                    .sort((a, b) => b.position - a.position)
+                    .map((role) => `- ${role.toString()}`);
 
                 if (roleList.length === 0) {
                     return interaction.editReply({
