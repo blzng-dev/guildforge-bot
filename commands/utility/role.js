@@ -8,6 +8,7 @@ const {
     ComponentType,
     AttachmentBuilder,
     RoleSelectMenuBuilder,
+    StringSelectMenuBuilder,
     ModalBuilder,
     TextInputBuilder,
     TextInputStyle,
@@ -118,6 +119,18 @@ module.exports = {
                     option
                         .setName("mentionable")
                         .setDescription("allow anyone to @mention this role")
+                        .setRequired(false)
+                )
+                .addRoleOption((option) =>
+                    option
+                        .setName("below_role")
+                        .setDescription("Position the new role below this role")
+                        .setRequired(false)
+                )
+                .addRoleOption((option) =>
+                    option
+                        .setName("above_role")
+                        .setDescription("Position the new role above this role")
                         .setRequired(false)
                 )
         )
@@ -532,6 +545,8 @@ module.exports = {
             const color = interaction.options.getString("color");
             const hoisted = interaction.options.getBoolean("hoist");
             const mentionable = interaction.options.getBoolean("mentionable");
+            const belowRole = interaction.options.getRole("below_role");
+            const aboveRole = interaction.options.getRole("above_role");
 
             if (color && !/^#[0-9A-F]{6}$/i.test(color)) {
                 return interaction.editReply({
@@ -552,12 +567,36 @@ module.exports = {
                 const targetRole = await interaction.guild.roles.create(
                     roleOptions
                 );
+                
+                let positionMessage = "";
+                if (belowRole || aboveRole) {
+                    const botHighest = interaction.guild.members.me.roles.highest;
+                    
+                    if (belowRole) {
+                        if (belowRole.position === 0) {
+                            positionMessage = "\n*(Cannot position below @everyone)*";
+                        } else if (belowRole.position >= botHighest.position) {
+                            positionMessage = `\n*(Could not position below ${belowRole.name} due to hierarchy)*`;
+                        } else {
+                            await targetRole.setPosition(belowRole.position - 1);
+                            positionMessage = `\n*(Positioned below ${belowRole.name})*`;
+                        }
+                    } else if (aboveRole) {
+                        if (aboveRole.position >= botHighest.position - 1) {
+                            positionMessage = `\n*(Could not position above ${aboveRole.name} due to hierarchy)*`;
+                        } else {
+                            await targetRole.setPosition(aboveRole.position + 1);
+                            positionMessage = `\n*(Positioned above ${aboveRole.name})*`;
+                        }
+                    }
+                }
+
                 console.log(
                     `Created role: ${targetRole.name} (${targetRole.id}) with options:`,
                     roleOptions
                 );
                 await interaction.editReply({
-                    content: `Successfully created role: <@&${targetRole.id}>`,
+                    content: `Successfully created role: <@&${targetRole.id}>${positionMessage}`,
                     flags: MessageFlags.Ephemeral,
                 });
             } catch (error) {
@@ -998,9 +1037,24 @@ module.exports = {
                     .setLabel("Delete These Roles")
                     .setStyle(ButtonStyle.Danger);
 
+                const deleteSomeButton = new ButtonBuilder()
+                    .setCustomId(`delete-some-roles-${interaction.id}`)
+                    .setLabel("Delete Some Roles")
+                    .setStyle(ButtonStyle.Primary);
+
+                const row = new ActionRowBuilder().addComponents(deleteButton, deleteSomeButton);
+
                 let replyContent = `Successfully exported ${exportData.length} roles.`;
                 if (exportData.length === 1) {
                     replyContent = `Role export for **${exportData[0].name}** (${exportData[0].id})`;
+                } else if (exportData.length > 1) {
+                    const roleList = exportData.map(r => `**${r.name}** (${r.id})`).join(", ");
+                    replyContent = `Roles export for ${roleList}`;
+                    
+                    // Truncate if too long for Discord (2000 chars)
+                    if (replyContent.length > 1900) {
+                        replyContent = replyContent.substring(0, 1900) + "... (and more)";
+                    }
                 }
 
                 const reply = await interaction.editReply({
@@ -1010,38 +1064,98 @@ module.exports = {
                 });
 
                 const collector = reply.createMessageComponentCollector({
-                    filter: i => i.customId === `delete-exported-roles-${interaction.id}` && i.user.id === interaction.user.id,
+                    filter: i => (i.customId === `delete-exported-roles-${interaction.id}` || i.customId === `delete-some-roles-${interaction.id}`) && i.user.id === interaction.user.id,
                     time: 60000,
                 });
 
                 collector.on("collect", async (i) => {
-                    await i.deferUpdate();
-                    await i.editReply({ content: "Deleting roles...", components: [] });
+                    if (i.customId === `delete-exported-roles-${interaction.id}`) {
+                        await i.deferUpdate();
+                        await i.editReply({ content: "Deleting roles...", components: [] });
 
-                    let deletedCount = 0;
-                    let failedCount = 0;
-                    const botHighest = interaction.guild.members.me.roles.highest;
+                        let deletedCount = 0;
+                        let failedCount = 0;
+                        const botHighest = interaction.guild.members.me.roles.highest;
 
-                    for (const role of rolesToExport) {
-                        try {
-                            if (role.position >= botHighest.position) {
-                                console.log(`Skipping role ${role.name} due to hierarchy.`);
+                        for (const role of rolesToExport) {
+                            try {
+                                if (role.position >= botHighest.position) {
+                                    console.log(`Skipping role ${role.name} due to hierarchy.`);
+                                    failedCount++;
+                                    continue;
+                                }
+                                await role.delete(`Exported and deleted by ${interaction.user.tag}`);
+                                deletedCount++;
+                            } catch (error) {
+                                console.error(`Failed to delete role ${role.name}:`, error);
                                 failedCount++;
-                                continue;
                             }
-                            await role.delete(`Exported and deleted by ${interaction.user.tag}`);
-                            deletedCount++;
-                        } catch (error) {
-                            console.error(`Failed to delete role ${role.name}:`, error);
-                            failedCount++;
                         }
-                    }
 
-                    await i.editReply({
-                        content: `Deletion finished. Deleted: ${deletedCount}. Failed: ${failedCount}.`,
-                        components: [],
-                    });
-                    collector.stop();
+                        await i.editReply({
+                            content: `Deletion finished. Deleted: ${deletedCount}. Failed: ${failedCount}.`,
+                            components: [],
+                        });
+                        collector.stop();
+                    } else if (i.customId === `delete-some-roles-${interaction.id}`) {
+                        const selectOptions = rolesToExport.slice(0, 25).map(r => ({
+                            label: r.name,
+                            value: r.id,
+                        }));
+
+                        const selectMenu = new StringSelectMenuBuilder()
+                            .setCustomId(`delete-select-${interaction.id}`)
+                            .setPlaceholder("Select roles to delete")
+                            .addOptions(selectOptions)
+                            .setMinValues(1)
+                            .setMaxValues(selectOptions.length);
+
+                        const selectRow = new ActionRowBuilder().addComponents(selectMenu);
+
+                        await i.reply({
+                            content: "Select the roles you want to delete:",
+                            components: [selectRow],
+                            flags: MessageFlags.Ephemeral,
+                        });
+
+                        const menuCollector = i.channel.createMessageComponentCollector({
+                            filter: menuI => menuI.customId === `delete-select-${interaction.id}` && menuI.user.id === interaction.user.id,
+                            time: 30000,
+                            max: 1,
+                        });
+
+                        menuCollector.on("collect", async (menuI) => {
+                            await menuI.deferUpdate();
+                            const selectedIds = menuI.values;
+                            
+                            await menuI.editReply({ content: "Deleting selected roles...", components: [] });
+
+                            let deletedCount = 0;
+                            let failedCount = 0;
+                            const botHighest = interaction.guild.members.me.roles.highest;
+
+                            for (const id of selectedIds) {
+                                const role = interaction.guild.roles.cache.get(id);
+                                if (!role) continue;
+                                try {
+                                    if (role.position >= botHighest.position) {
+                                        failedCount++;
+                                        continue;
+                                    }
+                                    await role.delete(`Exported and deleted by ${interaction.user.tag}`);
+                                    deletedCount++;
+                                } catch (error) {
+                                    console.error(`Failed to delete role ${role.name}:`, error);
+                                    failedCount++;
+                                }
+                            }
+
+                            await menuI.editReply({
+                                content: `Deletion finished. Deleted: ${deletedCount}. Failed: ${failedCount}.`,
+                                components: [],
+                            });
+                        });
+                    }
                 });
 
                 collector.on("end", (collected, reason) => {
@@ -2273,7 +2387,45 @@ module.exports = {
                 const rolesInRange = Array.from(interaction.guild.roles.cache.values())
                     .filter(r => r.position > lowPos && r.position < highPos);
 
-                await executeReorder(rolesInRange);
+                if (rolesInRange.length === 0) {
+                    return interaction.editReply({ content: "No roles found strictly between the specified range." });
+                }
+
+                const roleList = rolesInRange.map(r => `**${r.name}**`).join(", ");
+                
+                const confirmButton = new ButtonBuilder()
+                    .setCustomId(`confirm-reorder-${interaction.id}`)
+                    .setLabel("Confirm Move")
+                    .setStyle(ButtonStyle.Success);
+                    
+                const cancelButton = new ButtonBuilder()
+                    .setCustomId(`cancel-reorder-${interaction.id}`)
+                    .setLabel("Cancel")
+                    .setStyle(ButtonStyle.Danger);
+                    
+                const row = new ActionRowBuilder().addComponents(confirmButton, cancelButton);
+                
+                const response = await interaction.editReply({
+                    content: `The following roles will be moved ${positionOption} **${pivotRole.name}**:\n${roleList}\n\nDo you want to proceed?`,
+                    components: [row],
+                });
+                
+                try {
+                    const confirmation = await response.awaitMessageComponent({
+                        filter: i => i.user.id === interaction.user.id,
+                        time: 30000,
+                    });
+                    
+                    if (confirmation.customId === `confirm-reorder-${interaction.id}`) {
+                        await confirmation.deferUpdate();
+                        await executeReorder(rolesInRange);
+                    } else {
+                        await confirmation.deferUpdate();
+                        await confirmation.editReply({ content: "Reorder cancelled.", components: [] });
+                    }
+                } catch (error) {
+                    await interaction.editReply({ content: "Confirmation timed out. Reorder cancelled.", components: [] });
+                }
             } else {
                 const row = new ActionRowBuilder().addComponents(
                     new RoleSelectMenuBuilder()
