@@ -12,6 +12,9 @@ const {
     RoleSelectMenuBuilder,
     UserSelectMenuBuilder,
     Routes,
+    ModalBuilder,
+    TextInputBuilder,
+    TextInputStyle,
 } = require("discord.js");
 const { REST } = require("@discordjs/rest");
 const { setTimeout: wait } = require("node:timers/promises"); // For delays
@@ -99,6 +102,25 @@ module.exports = {
         )
         .setDefaultMemberPermissions(PermissionsBitField.Flags.ManageGuild)
         .setDMPermission(false)
+
+        // --- BULK SUBCOMMAND GROUP ---
+        .addSubcommandGroup((group) =>
+            group
+                .setName("bulk")
+                .setDescription("bulk operations for channels")
+                .addSubcommand((subcommand) =>
+                    subcommand
+                        .setName("create")
+                        .setDescription("create multiple channels via a modal")
+                        .addStringOption((option) =>
+                            option
+                                .setName("category")
+                                .setDescription("parent category (start typing...)")
+                                .setRequired(false)
+                                .setAutocomplete(true)
+                        )
+                )
+        )
 
         // --- Preset Subcommand ---\
         .addSubcommand((subcommand) =>
@@ -404,6 +426,126 @@ module.exports = {
 
         const subcommand = interaction.options.getSubcommand();
         const subcommandGroup = interaction.options.getSubcommandGroup();
+
+        if (subcommandGroup === "bulk" && subcommand === "create") {
+            const modal = new ModalBuilder()
+                .setCustomId('bulk_channel_create_modal')
+                .setTitle('Bulk Channel Create');
+
+            const channelsInput = new TextInputBuilder()
+                .setCustomId('channels_input')
+                .setLabel('Channels (new line or comma separated)')
+                .setStyle(TextInputStyle.Paragraph)
+                .setPlaceholder('text -c, general, media\nnews --a --ro\nrules --ros\nmod-chat --priv')
+                .setRequired(true);
+
+            modal.addComponents(new ActionRowBuilder().addComponents(channelsInput));
+
+            await interaction.showModal(modal);
+
+            try {
+                const submitted = await interaction.awaitModalSubmit({
+                    time: 300000,
+                    filter: i => i.user.id === interaction.user.id && i.customId === 'bulk_channel_create_modal',
+                });
+
+                if (submitted) {
+                    await submitted.deferReply({ flags: MessageFlags.Ephemeral });
+
+                    const input = submitted.fields.getTextInputValue('channels_input');
+                    const parts = input.split(/[\n,]+/).map(p => p.trim()).filter(p => p.length > 0);
+
+                    const categoryId = interaction.options.getString("category");
+                    let currentCategory = categoryId ? interaction.guild.channels.cache.get(categoryId) : null;
+
+                    if (categoryId && (!currentCategory || currentCategory.type !== ChannelType.GuildCategory)) {
+                        await submitted.editReply("Selected category is invalid.");
+                        return;
+                    }
+
+                    let createdCount = 0;
+                    for (const part of parts) {
+                        let isCategory = false, type = '--t', isReadonly = false, isReadonlyStrict = false, isPrivate = false, isPublic = false;
+                        let cleanWords = [];
+                        for (const word of part.split(/\s+/)) {
+                            if (word === '--c' || word === '-c') isCategory = true;
+                            else if (word === '--v') type = '--v';
+                            else if (word === '--s') type = '--s';
+                            else if (word === '--f') type = '--f';
+                            else if (word === '--a') type = '--a';
+                            else if (word === '--t') type = '--t';
+                            else if (word === '--ro') isReadonly = true;
+                            else if (word === '--ros') isReadonlyStrict = true;
+                            else if (word === '--priv') isPrivate = true;
+                            else if (word === '--pub') isPublic = true;
+                            else cleanWords.push(word);
+                        }
+                        let cleanName = cleanWords.join('-').toLowerCase();
+
+                        if (isCategory) {
+                            const catName = cleanWords.join(' ');
+                            currentCategory = await interaction.guild.channels.create({
+                                name: catName,
+                                type: ChannelType.GuildCategory
+                            });
+                            createdCount++;
+                        } else {
+                            let channelTypeEnum = ChannelType.GuildText;
+                            if (type === '--v') channelTypeEnum = ChannelType.GuildVoice;
+                            else if (type === '--s') channelTypeEnum = ChannelType.GuildStageVoice;
+                            else if (type === '--f') channelTypeEnum = ChannelType.GuildForum;
+                            else if (type === '--a') channelTypeEnum = ChannelType.GuildAnnouncement;
+
+                            let permissionOverwrites = [];
+
+                            if (isPrivate) {
+                                permissionOverwrites.push({
+                                    id: interaction.guild.roles.everyone.id,
+                                    deny: [PermissionFlagsBits.ViewChannel],
+                                });
+                            } else if (isReadonlyStrict) {
+                                permissionOverwrites.push({
+                                    id: interaction.guild.roles.everyone.id,
+                                    deny: [
+                                        PermissionFlagsBits.SendMessages,
+                                        PermissionFlagsBits.SendMessagesInThreads,
+                                        PermissionFlagsBits.AddReactions,
+                                        PermissionFlagsBits.CreatePublicThreads,
+                                        PermissionFlagsBits.CreatePrivateThreads,
+                                        PermissionFlagsBits.UseApplicationCommands
+                                    ],
+                                });
+                            } else if (isReadonly) {
+                                permissionOverwrites.push({
+                                    id: interaction.guild.roles.everyone.id,
+                                    deny: [
+                                        PermissionFlagsBits.SendMessages,
+                                    ],
+                                });
+                            }
+
+                            const channelOptions = {
+                                name: cleanName,
+                                type: channelTypeEnum,
+                                permissionOverwrites: permissionOverwrites.length > 0 ? permissionOverwrites : undefined,
+                                parent: currentCategory?.id || null
+                            };
+
+                            await interaction.guild.channels.create(channelOptions);
+                            createdCount++;
+                        }
+                    }
+
+                    await submitted.editReply(`Successfully created ${createdCount} channels/categories.`);
+                }
+            } catch (err) {
+                if (err.code !== 'InteractionCollectorError') {
+                    console.error("Bulk create modal error:", err);
+                }
+            }
+            return;
+        }
+
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
         // ============================
@@ -608,20 +750,20 @@ module.exports = {
                             content:
                                 "❌ **Permission Error:** The bot is missing `Manage Channels` or `Manage Roles` permission in the target server.",
                         })
-                        .catch(() => {});
+                        .catch(() => { });
                 } else if (error.code === 50035) {
                     // Invalid Form Body
                     await interaction
                         .editReply({
                             content: `❌ **API Error:** Discord rejected the request. This is often due to an invalid emoji. The bot tried to skip it, but the error persists. Please check the console for more details.`,
                         })
-                        .catch(() => {});
+                        .catch(() => { });
                 } else {
                     await interaction
                         .editReply({
                             content: `An unexpected error occurred: ${error.message}`,
                         })
-                        .catch(() => {});
+                        .catch(() => { });
                 }
             }
         }
@@ -632,7 +774,7 @@ module.exports = {
             const presetName = interaction.options.getString("preset_name");
             const presetData = channelPresets[presetName];
             const guild = interaction.guild;
-            const rest = new REST().setToken(token);
+            const rest = new REST().setToken(process.env.TOKEN);
 
             if (!presetData) {
                 return interaction.editReply({
@@ -663,7 +805,6 @@ module.exports = {
                         communityRulesChannel = await guild.channels.create({
                             name: "rules",
                             type: ChannelType.GuildText,
-                            topic: "Server Rules",
                             permissionOverwrites: [
                                 {
                                     id: guild.roles.everyone.id,
@@ -697,12 +838,13 @@ module.exports = {
                         communityUpdatesChannel = await guild.channels.create({
                             name: "community-updates",
                             type: ChannelType.GuildText,
-                            topic: "Community Updates",
                             permissionOverwrites: [
                                 {
                                     id: guild.roles.everyone.id,
-                                    deny: [PermissionFlagsBits.SendMessages],
-                                    allow: [PermissionFlagsBits.ViewChannel],
+                                    deny: [
+                                        PermissionFlagsBits.SendMessages,
+                                        PermissionFlagsBits.ViewChannel,
+                                    ],
                                 },
                             ],
                         });
@@ -747,9 +889,8 @@ module.exports = {
                         err
                     );
                     return interaction.editReply({
-                        content: `Failed to enable community features: ${
-                            err.message || "Unknown error"
-                        }. Cannot proceed with preset.`,
+                        content: `Failed to enable community features: ${err.message || "Unknown error"
+                            }. Cannot proceed with preset.`,
                         flags: MessageFlags.Ephemeral,
                     });
                 }
@@ -776,22 +917,19 @@ module.exports = {
             if (topLevelChannels.length > 0) {
                 previewMessage += `\n- No Category\n`;
                 topLevelChannels.forEach((channel) => {
-                    previewMessage += `  - ${channel.name} (${
-                        ChannelType[channel.type]
-                    }${channel.readOnly ? " - Read Only" : ""})\n`;
+                    previewMessage += `  - ${channel.name} (${ChannelType[channel.type]
+                        }${channel.readOnly ? " - Read Only" : ""})\n`;
                 });
             }
 
             for (const categoryName in categoryChannels) {
                 const category = categoryChannels[categoryName];
-                previewMessage += `\n- ${category.name} (Category${
-                    category.private ? " - Private Staff" : ""
-                })\n`;
+                previewMessage += `\n- ${category.name} (Category${category.private ? " - Private Staff" : ""
+                    })\n`;
                 if (category.children) {
                     category.children.forEach((child) => {
-                        previewMessage += `  - ${child.name} (${
-                            ChannelType[child.type]
-                        }${child.readOnly ? " - Read Only" : ""})\n`;
+                        previewMessage += `  - ${child.name} (${ChannelType[child.type]
+                            }${child.readOnly ? " - Read Only" : ""})\n`;
                     });
                 }
             }
@@ -891,8 +1029,8 @@ module.exports = {
                         const itemsToCreate = item.children
                             ? item.children
                             : item.type !== ChannelType.GuildCategory
-                            ? [item]
-                            : [];
+                                ? [item]
+                                : [];
                         const parentId = item.children
                             ? createdCategories[item.name]
                             : undefined;
@@ -927,8 +1065,7 @@ module.exports = {
                                     channelOptions
                                 );
                                 logMessages.push(
-                                    `✅ Created Channel: ${newChannel.name} ${
-                                        parentId ? `in ${item.name}` : ""
+                                    `✅ Created Channel: ${newChannel.name} ${parentId ? `in ${item.name}` : ""
                                     }`
                                 );
                                 createdCount++;
@@ -986,7 +1123,7 @@ module.exports = {
                                 "Preset confirmation timed out. No channels were created.",
                             components: [],
                         })
-                        .catch(() => {});
+                        .catch(() => { });
                 } else {
                     await interaction
                         .editReply({
@@ -994,7 +1131,7 @@ module.exports = {
                                 "An unexpected error occurred during preset creation.",
                             components: [],
                         })
-                        .catch(() => {});
+                        .catch(() => { });
                 }
             }
         }
@@ -1327,17 +1464,14 @@ module.exports = {
 
                         // Create permission option buttons
                         const settingsMessage =
-                            `Selected ${
-                                isUser ? "user" : "role"
-                            }: **${selectedName}** for channel **<#${
-                                targetChannel.id
+                            `Selected ${isUser ? "user" : "role"
+                            }: **${selectedName}** for channel **<#${targetChannel.id
                             }>**\n\n` +
                             `To configure permissions, use the \`/channel manage\` command with the following options:\n` +
                             `- Set channel to **<#${targetChannel.id}>**\n` +
-                            `- Set target to **${
-                                isUser
-                                    ? `<@${selectedId}>`
-                                    : `<@&${selectedId}>`
+                            `- Set target to **${isUser
+                                ? `<@${selectedId}>`
+                                : `<@&${selectedId}>`
                             }**\n` +
                             `- Set the permissions you want to change (allow/deny/inherit)`;
 
@@ -1348,11 +1482,9 @@ module.exports = {
                         });
 
                         // Create a new slash command suggestion for them
-                        const commandSuggestion = `/channel manage channel:<#${
-                            targetChannel.id
-                        }> target:${
-                            isUser ? `<@${selectedId}>` : `<@&${selectedId}>`
-                        }`;
+                        const commandSuggestion = `/channel manage channel:<#${targetChannel.id
+                            }> target:${isUser ? `<@${selectedId}>` : `<@&${selectedId}>`
+                            }`;
 
                         await interaction.followUp({
                             content: `You can run this command:\n\`${commandSuggestion}\``,
@@ -1371,7 +1503,7 @@ module.exports = {
                                     components: [],
                                     flags: MessageFlags.Ephemeral,
                                 })
-                                .catch(() => {});
+                                .catch(() => { });
                         }
                     });
                 } catch (error) {
@@ -1610,11 +1742,10 @@ module.exports = {
                         );
 
                         // Final response message
-                        let finalMessage = `Successfully deleted ${
-                            channelType === ChannelType.GuildCategory
-                                ? "category"
-                                : "channel"
-                        } "${channelName}" (was <#${channelId}>).`;
+                        let finalMessage = `Successfully deleted ${channelType === ChannelType.GuildCategory
+                            ? "category"
+                            : "channel"
+                            } "${channelName}" (was <#${channelId}>).`;
                         if (isCategory && deleteAll) {
                             finalMessage = `Successfully deleted category "${channelName}" and its channels.`;
                         }
@@ -1625,8 +1756,7 @@ module.exports = {
                         });
                     } catch (deleteError) {
                         console.error(
-                            `Error deleting channel ${
-                                targetChannel?.name || "unknown"
+                            `Error deleting channel ${targetChannel?.name || "unknown"
                             } (${targetChannel?.id || "unknown"}):`,
                             deleteError
                         );
@@ -1644,8 +1774,7 @@ module.exports = {
                     }
                 } catch (error) {
                     console.error(
-                        `Error in delete command for channel ${
-                            targetChannel?.name || "unknown"
+                        `Error in delete command for channel ${targetChannel?.name || "unknown"
                         } (${targetChannel?.id || "unknown"}):`,
                         error
                     );
@@ -1777,7 +1906,7 @@ module.exports = {
                                     components: [],
                                     flags: MessageFlags.Ephemeral,
                                 })
-                                .catch(() => {});
+                                .catch(() => { });
                         } else if (reason === "channels_selected") {
                             // Start the confirmation collector
                             const confirmCollector =
@@ -1864,17 +1993,15 @@ module.exports = {
                                             successCount++;
                                         } catch (error) {
                                             console.error(
-                                                `Error deleting channel ${
-                                                    channel?.name || "unknown"
-                                                } (${
-                                                    channel?.id || "unknown"
+                                                `Error deleting channel ${channel?.name || "unknown"
+                                                } (${channel?.id || "unknown"
                                                 }):`,
                                                 error
                                             );
                                             errorCount++;
                                             errorChannels.push(
                                                 channel?.name ||
-                                                    "Unknown Channel"
+                                                "Unknown Channel"
                                             );
                                         }
                                     }
@@ -1913,7 +2040,7 @@ module.exports = {
                                             components: [],
                                             flags: MessageFlags.Ephemeral,
                                         })
-                                        .catch(() => {});
+                                        .catch(() => { });
                                 }
                             });
                         }
@@ -1960,8 +2087,7 @@ module.exports = {
                         });
                 } catch (error) {
                     console.error(
-                        `Error clearing permission overwrites for channel ${
-                            targetChannel?.name || "unknown"
+                        `Error clearing permission overwrites for channel ${targetChannel?.name || "unknown"
                         } (${targetChannel?.id || "unknown"}):`,
                         error
                     );
@@ -2066,8 +2192,7 @@ module.exports = {
                                 successCount++;
                             } catch (error) {
                                 console.error(
-                                    `Error clearing permission overwrites for channel ${
-                                        channel?.name || "unknown"
+                                    `Error clearing permission overwrites for channel ${channel?.name || "unknown"
                                     } (${channel?.id || "unknown"}):`,
                                     error
                                 );
@@ -2113,7 +2238,7 @@ module.exports = {
                                     components: [],
                                     flags: MessageFlags.Ephemeral,
                                 })
-                                .catch(() => {});
+                                .catch(() => { });
                         }
                     });
                 } catch (error) {

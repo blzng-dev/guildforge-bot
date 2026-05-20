@@ -43,7 +43,7 @@ some useful free bot invite links
 - **[Sapphire](<https://discord.com/oauth2/authorize?scope=bot+applications.commands&response_type=code&redirect_uri=https://sapph.xyz/dashboard&permissions=1101596716286&client_id=678344927997853742&guild_id=1355771301259771965>)** - menus, logging, welcome
 - **[Statbot](<https://discord.com/oauth2/authorize?client_id=491769129318088714&scope=bot+applications.commands&permissions=275147508760>)** - message tracking
 - **[Activity Rank](<https://discord.com/oauth2/authorize?client_id=534589798267224065&permissions=294172224721&scope=bot%20applications.commands>)** - levelling
-- **[Formify](<https://discord.com/oauth2/authorize?client_id=945331235977310280&permissions=0&scope=bot%20applications.commands>)** - forms, ticketing
+- **[Formify](<https://ptb.discord.com/oauth2/authorize?client_id=945331235977310280&permissions=395405740048&scope=applications.commands+bot>)** - forms, ticketing
 - **[Discohook](<https://discord.com/oauth2/authorize?client_id=792842038332358656&permissions=805694528&scope=bot%20applications.commands>)** - menus
 - **[X Follow-Up](<https://discord.com/oauth2/authorize?client_id=1174332637322674186&permissions=2147862592&scope=bot%20applications.commands>)** - twitter notifications
 - **[Fredboat](<https://discord.com/oauth2/authorize?client_id=184405253028970496&scope=bot+identify&redirect_uri=https%3A%2F%2Ffredboat.com%2Fcallback%2Fmusic&response_type=code>)** - music

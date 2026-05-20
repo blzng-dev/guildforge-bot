@@ -43,7 +43,14 @@ const rest = new REST().setToken(token);
             `Started refreshing ${commands.length} application (/) commands.`
         );
 
-        // The put method is used to fully refresh all commands in the guild with the current set
+        // Clear any orphaned test guild commands that were causing duplicates
+        console.log("Cleaning up orphaned test guild commands...");
+        await rest.put(Routes.applicationGuildCommands(clientId, '1019267320285237249'), {
+            body: [],
+        });
+        
+        // The put method is used to fully refresh all commands globally with the current set
+        console.log("Deploying commands globally...");
         const data = await rest.put(Routes.applicationCommands(clientId), {
             body: commands,
         });

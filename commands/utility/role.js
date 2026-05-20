@@ -511,7 +511,7 @@ module.exports = {
                 const input = modalSubmit.fields.getTextInputValue('rolesInput');
                 // Split by newline or comma, then trim and remove empty
                 const roleNames = input
-                    .split(/,|\\n/)
+                    .split(/,|\n|\\n/)
                     .map(r => r.trim())
                     .filter(r => r.length > 0);
 
