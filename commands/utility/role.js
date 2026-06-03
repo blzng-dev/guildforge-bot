@@ -11,10 +11,11 @@ const {
     StringSelectMenuBuilder,
     ModalBuilder,
     TextInputBuilder,
-    TextInputStyle,
 } = require("discord.js");
 const fs = require("node:fs/promises");
 const path = require("node:path");
+const { confirmAction } = require("../../utils/confirm.js");
+const { ProgressReporter } = require("../../utils/progress.js");
 
 // Define permission presets
 const permissionPresets = {
@@ -84,9 +85,7 @@ const permissionChoices = [
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("role")
-        .setDescription(
-            "manage server roles (create, preset, list, settings, etc.)"
-        )
+        .setDescription("manage server roles")
         .setDefaultMemberPermissions(PermissionsBitField.Flags.ManageGuild)
         .setDMPermission(false)
 
@@ -94,43 +93,41 @@ module.exports = {
         .addSubcommand((subcommand) =>
             subcommand
                 .setName("create")
-                .setDescription("creates a new role with custom options")
+                .setDescription("create a new role")
                 .addStringOption((option) =>
                     option
                         .setName("name")
-                        .setDescription("the name for the new role")
+                        .setDescription("name for the new role")
                         .setRequired(true)
                 )
                 .addStringOption((option) =>
                     option
                         .setName("color")
-                        .setDescription("hex color code (e.g. #ff0000)")
+                        .setDescription("hex color code")
                         .setRequired(false)
                 )
                 .addBooleanOption((option) =>
                     option
                         .setName("hoist")
-                        .setDescription(
-                            "display role members separately in member list"
-                        )
+                        .setDescription("hoist role in member list")
                         .setRequired(false)
                 )
                 .addBooleanOption((option) =>
                     option
                         .setName("mentionable")
-                        .setDescription("allow anyone to @mention this role")
+                        .setDescription("allow anyone to mention this role")
                         .setRequired(false)
                 )
                 .addRoleOption((option) =>
                     option
                         .setName("below_role")
-                        .setDescription("Position the new role below this role")
+                        .setDescription("position below this role")
                         .setRequired(false)
                 )
                 .addRoleOption((option) =>
                     option
                         .setName("above_role")
-                        .setDescription("Position the new role above this role")
+                        .setDescription("position above this role")
                         .setRequired(false)
                 )
         )
@@ -138,19 +135,17 @@ module.exports = {
         .addSubcommand((subcommand) =>
             subcommand
                 .setName("create-bulk")
-                .setDescription("creates multiple roles at once via modal input")
+                .setDescription("create multiple roles via modal")
         )
 
         .addSubcommand((subcommand) =>
             subcommand
                 .setName("preset")
-                .setDescription(
-                    "creates a role based on a predefined permission preset"
-                )
+                .setDescription("create a role from preset")
                 .addStringOption((option) =>
                     option
                         .setName("preset_name")
-                        .setDescription("select the permission preset")
+                        .setDescription("select permission preset")
                         .setRequired(true)
                         .addChoices(
                             { name: "Moderator", value: "mod" },
@@ -161,9 +156,7 @@ module.exports = {
                 .addStringOption((option) =>
                     option
                         .setName("role_name")
-                        .setDescription(
-                            "optional custom name for the role (defaults to preset name)"
-                        )
+                        .setDescription("optional custom name")
                         .setRequired(false)
                 )
         )
@@ -171,23 +164,23 @@ module.exports = {
         .addSubcommand((subcommand) =>
             subcommand
                 .setName("list")
-                .setDescription("lists all roles in the server")
+                .setDescription("list server roles")
                 .addBooleanOption((option) =>
                     option
                         .setName("hoisted")
-                        .setDescription("Filter by hoisted roles")
+                        .setDescription("filter by hoisted roles")
                         .setRequired(false)
                 )
                 .addBooleanOption((option) =>
                     option
                         .setName("pingable")
-                        .setDescription("Filter by pingable roles")
+                        .setDescription("filter by pingable roles")
                         .setRequired(false)
                 )
                 .addBooleanOption((option) =>
                     option
                         .setName("has_admin")
-                        .setDescription("Filter by roles with Administrator permission")
+                        .setDescription("filter by admin roles")
                         .setRequired(false)
                 )
         )
@@ -195,7 +188,7 @@ module.exports = {
         .addSubcommand((subcommand) =>
             subcommand
                 .setName("color")
-                .setDescription("creates ~40 color roles")
+                .setDescription("create color roles")
         )
 
         .addSubcommand((subcommand) =>
@@ -207,17 +200,17 @@ module.exports = {
         .addSubcommand((subcommand) =>
             subcommand
                 .setName("info")
-                .setDescription("Displays information about a role and attaches member list.")
+                .setDescription("display role information")
                 .addRoleOption((option) =>
                     option
                         .setName("role")
-                        .setDescription("The role to get info for")
+                        .setDescription("the role to get info for")
                         .setRequired(true)
                 )
                 .addBooleanOption((option) =>
                     option
                         .setName("ephemeral")
-                        .setDescription("Whether the reply should be ephemeral (default: false)")
+                        .setDescription("reply ephemerally (default false)")
                         .setRequired(false)
                 )
         )
@@ -225,29 +218,29 @@ module.exports = {
         .addSubcommand((subcommand) =>
             subcommand
                 .setName("export")
-                .setDescription("Exports info for multiple roles as JSON and optionally deletes them.")
+                .setDescription("export roles to json")
                 .addRoleOption((option) =>
                     option
                         .setName("target")
-                        .setDescription("A single role to export")
+                        .setDescription("single role to export")
                         .setRequired(false)
                 )
                 .addRoleOption((option) =>
                     option
                         .setName("start_role")
-                        .setDescription("Start of role range to export (exclusive)")
+                        .setDescription("start of role range to export")
                         .setRequired(false)
                 )
                 .addRoleOption((option) =>
                     option
                         .setName("end_role")
-                        .setDescription("End of role range to export (exclusive)")
+                        .setDescription("end of role range to export")
                         .setRequired(false)
                 )
                 .addBooleanOption((option) =>
                     option
                         .setName("ephemeral")
-                        .setDescription("Whether the reply should be ephemeral (default: false)")
+                        .setDescription("reply ephemerally (default false)")
                         .setRequired(false)
                 )
         )
@@ -255,11 +248,11 @@ module.exports = {
         .addSubcommand((subcommand) =>
             subcommand
                 .setName("import")
-                .setDescription("Imports roles from a JSON file or text.")
+                .setDescription("import roles from json")
                 .addAttachmentOption((option) =>
                     option
                         .setName("file")
-                        .setDescription("The exported JSON file")
+                        .setDescription("the exported json file")
                         .setRequired(false)
                 )
         )
@@ -267,17 +260,17 @@ module.exports = {
         .addSubcommand((subcommand) =>
             subcommand
                 .setName("toggle")
-                .setDescription("adds or removes a specific role from a user.")
+                .setDescription("toggle role for a user")
                 .addRoleOption((option) =>
                     option
                         .setName("role")
-                        .setDescription("the role to toggle.")
+                        .setDescription("the role to toggle")
                         .setRequired(true)
                 )
                 .addUserOption((option) =>
                     option
                         .setName("user")
-                        .setDescription("the user to toggle the role for.")
+                        .setDescription("the user to toggle the role for")
                         .setRequired(true)
                 )
         )
@@ -285,13 +278,11 @@ module.exports = {
         .addSubcommand((subcommand) => {
             subcommand
                 .setName("manage")
-                .setDescription(
-                    "Modify settings and permissions for an existing role."
-                )
+                .setDescription("modify role settings and permissions")
                 .addRoleOption((option) =>
                     option
                         .setName("role")
-                        .setDescription("The role to modify.")
+                        .setDescription("the role to modify")
                         .setRequired(true)
                 )
                 .addStringOption((option) =>
@@ -300,19 +291,17 @@ module.exports = {
                 .addStringOption((option) =>
                     option
                         .setName("color")
-                        .setDescription("Hex color code (e.g., #FF0000)")
+                        .setDescription("hex color code")
                 )
                 .addBooleanOption((option) =>
                     option
                         .setName("hoisted")
-                        .setDescription(
-                            "Display role separately in member list?"
-                        )
+                        .setDescription("hoist role in member list")
                 )
                 .addBooleanOption((option) =>
                     option
                         .setName("mentionable")
-                        .setDescription("Allow anyone to @mention this role?")
+                        .setDescription("allow anyone to mention this role")
                 );
 
             for (const [permName, flagBit] of Object.entries(rolePermissions)) {
@@ -320,7 +309,7 @@ module.exports = {
                     option
                         .setName(permName)
                         .setDescription(
-                            `Set permission: ${permName.replace(/_/g, " ")}`
+                            `set permission: ${permName.replace(/_/g, " ")}`
                         )
                         .addChoices(...permissionChoices)
                 );
@@ -332,15 +321,11 @@ module.exports = {
         .addSubcommand((subcommand) =>
             subcommand
                 .setName("clear")
-                .setDescription(
-                    "clear all permissions from a role or multiple roles"
-                )
+                .setDescription("clear all permissions from roles")
                 .addRoleOption((option) =>
                     option
                         .setName("target")
-                        .setDescription(
-                            "the role to clear permissions from (leave empty to select multiple)"
-                        )
+                        .setDescription("role to clear (leave empty for multiple)")
                         .setRequired(false)
                 )
         )
@@ -348,66 +333,58 @@ module.exports = {
         .addSubcommand((subcommand) =>
             subcommand
                 .setName("delete")
-                .setDescription(
-                    "Delete roles: single target, selection menu, or a range."
-                )
+                .setDescription("delete roles")
                 .addRoleOption((option) =>
                     option
                         .setName("target")
-                        .setDescription(
-                            "The role to delete (leave empty to select multiple roles)"
-                        )
+                        .setDescription("role to delete (leave empty for multiple)")
                         .setRequired(false)
                 )
                 .addRoleOption((option) =>
                     option
                         .setName("start_role")
-                        .setDescription(
-                            "Boundary role 1 for range deletion (exclusive)"
-                        )
+                        .setDescription("start role for range deletion")
                         .setRequired(false)
                 )
                 .addRoleOption((option) =>
                     option
                         .setName("end_role")
-                        .setDescription(
-                            "Boundary role 2 for range deletion (exclusive)"
-                        )
+                        .setDescription("end role for range deletion")
+                        .setRequired(false)
+                )
+                .addBooleanOption((option) =>
+                    option
+                        .setName("include_boundaries")
+                        .setDescription("include start/end roles in deletion? (default false)")
                         .setRequired(false)
                 )
         )
         .addSubcommand((subcommand) =>
             subcommand
                 .setName("transfer")
-                .setDescription(
-                    "Transfers members from a secondary role to a primary role."
-                )
+                .setDescription("transfer members between roles")
                 .addRoleOption((option) =>
                     option
                         .setName("primary_role")
-                        .setDescription("The role to assign to members.")
+                        .setDescription("the role to assign")
                         .setRequired(true)
                 )
                 .addRoleOption((option) =>
                     option
                         .setName("secondary_role")
-                        .setDescription("The role to select members from.")
+                        .setDescription("the role to select from")
                         .setRequired(true)
                 )
                 .addBooleanOption((option) =>
                     option
                         .setName("transcript")
-                        .setDescription(
-                            "Generate a .txt file of member IDs before transfer?"
-                        )
+                        .setDescription("generate transcript before transfer")
                         .setRequired(false)
                 )
                 .addBooleanOption((option) =>
                     option
                         .setName("delete_secondary")
-                        .setDescription(
-                            "Delete the secondary role after transfer?"
-                        )
+                        .setDescription("delete secondary role after transfer")
                         .setRequired(false)
                 )
         )
@@ -418,13 +395,13 @@ module.exports = {
                 .addRoleOption((option) =>
                     option
                         .setName("pivot")
-                        .setDescription("The role to place the selected roles above/below.")
+                        .setDescription("the pivot role")
                         .setRequired(true)
                 )
                 .addStringOption((option) =>
                     option
                         .setName("position")
-                        .setDescription("Place roles above or below the pivot? (default: below)")
+                        .setDescription("place above or below pivot (default below)")
                         .addChoices(
                             { name: "Above", value: "above" },
                             { name: "Below", value: "below" }
@@ -434,19 +411,19 @@ module.exports = {
                 .addRoleOption((option) =>
                     option
                         .setName("target")
-                        .setDescription("A single role to move.")
+                        .setDescription("single role to move")
                         .setRequired(false)
                 )
                 .addRoleOption((option) =>
                     option
                         .setName("range_start")
-                        .setDescription("Start of a role range to move.")
+                        .setDescription("start of role range to move")
                         .setRequired(false)
                 )
                 .addRoleOption((option) =>
                     option
                         .setName("range_end")
-                        .setDescription("End of a role range to move.")
+                        .setDescription("end of role range to move")
                         .setRequired(false)
                 )
         ),
@@ -526,6 +503,7 @@ module.exports = {
                 let createdCount = 0;
                 let failedCount = 0;
                 const failedNames = [];
+                const reporter = new ProgressReporter(modalSubmit, roleNames.length, "Bulk Creating Roles");
 
                 for (const name of roleNames) {
                     try {
@@ -536,19 +514,22 @@ module.exports = {
                             mentionable: false
                         });
                         createdCount++;
+                        await reporter.update(true);
+                        await wait(1000); // Add a small delay to avoid rate limits
                     } catch (error) {
                         console.error(`Failed to create role ${name}:`, error);
                         failedCount++;
                         failedNames.push(name);
+                        await reporter.update(false);
                     }
                 }
 
                 let resultMsg = `Successfully created ${createdCount} roles.`;
                 if (failedCount > 0) {
-                    resultMsg += `\\nFailed to create ${failedCount} roles: ${failedNames.join(', ')}`;
+                    resultMsg += `\nFailed to create ${failedCount} roles:\n${failedNames.map(f => `- ${f}`).join('\n')}`;
                 }
 
-                await modalSubmit.editReply({ content: resultMsg, flags: MessageFlags.Ephemeral });
+                await reporter.finish(resultMsg);
             } catch (error) {
                 if (error.code !== 'InteractionCollectorError') {
                     console.error("Error in bulk role creation modal:", error);
@@ -1542,6 +1523,10 @@ module.exports = {
                     });
                 }
 
+                const prompt = `Are you sure you want to clear all permissions from the role "${targetRole.name}"?`;
+                const confirmed = await confirmAction(interaction, prompt);
+                if (!confirmed) return;
+
                 try {
                     // Edit the role to have no permissions
                     await targetRole.edit(
@@ -1608,6 +1593,12 @@ module.exports = {
                             });
                             return collector.stop();
                         }
+
+                        collector.stop();
+
+                        const prompt = `Are you sure you want to clear all permissions from ${selectedRoles.length} role(s)?`;
+                        const confirmed = await confirmAction(i, prompt);
+                        if (!confirmed) return;
 
                         let successCount = 0;
                         let errorCount = 0;
@@ -1678,15 +1669,11 @@ module.exports = {
                         let resultMessage = `Results of clearing permissions:\n✅ Successfully cleared: ${successCount} role(s)`;
 
                         if (skippedCount > 0) {
-                            resultMessage += `\n⚠️ Skipped due to hierarchy: ${skippedCount} role(s) [${skippedRoles.join(
-                                ", "
-                            )}]`;
+                            resultMessage += `\n⚠️ Skipped due to hierarchy: ${skippedCount} role(s):\n${skippedRoles.map(s => `- ${s}`).join("\n")}`;
                         }
 
                         if (errorCount > 0) {
-                            resultMessage += `\n❌ Failed to clear: ${errorCount} role(s) [${errorRoles.join(
-                                ", "
-                            )}]`;
+                            resultMessage += `\n❌ Failed to clear: ${errorCount} role(s):\n${errorRoles.map(e => `- ${e}`).join("\n")}`;
                         }
 
                         // Update the message with results
@@ -1695,8 +1682,6 @@ module.exports = {
                             components: [], // Remove the select menu
                             flags: MessageFlags.Ephemeral,
                         });
-
-                        collector.stop();
                     });
 
                     collector.on("end", (collected, reason) => {
@@ -1753,10 +1738,13 @@ module.exports = {
                 const pos2 = endRole.position;
                 const lowPos = Math.min(pos1, pos2);
                 const highPos = Math.max(pos1, pos2);
+                const includeBoundaries = interaction.options.getBoolean("include_boundaries") ?? false;
 
-                // Filter roles strictly between the two boundary roles
+                // Filter roles based on boundaries
                 const rolesInRange = interaction.guild.roles.cache.filter(
-                    (r) => r.position > lowPos && r.position < highPos
+                    (r) => includeBoundaries 
+                        ? (r.position >= lowPos && r.position <= highPos)
+                        : (r.position > lowPos && r.position < highPos)
                 );
 
                 if (rolesInRange.size === 0) {
@@ -1800,7 +1788,7 @@ module.exports = {
 
                 if (rolesToDelete.length === 0) {
                     const params = skippedRoles.length
-                        ? `\nSkipped: ${skippedRoles.join(", ")}`
+                        ? `\nSkipped:\n${skippedRoles.map(s => `- ${s}`).join("\n")}`
                         : "";
                     return interaction.editReply({
                         content: `Found ${rolesInRange.size} roles between boundaries, but none can be deleted.${params}`,
@@ -1810,54 +1798,21 @@ module.exports = {
 
                 // Sort for display
                 rolesToDelete.sort((a, b) => b.position - a.position);
-                const roleNames = rolesToDelete.map((r) => r.name).join(", ");
+                const roleNames = rolesToDelete.map((r) => `- ${r.name}`).join("\n");
 
-                // Confirmation UI
-                const confirmRow = new ActionRowBuilder().addComponents(
-                    new ButtonBuilder()
-                        .setCustomId("confirm-range-delete")
-                        .setLabel("Confirm Range Deletion")
-                        .setStyle(ButtonStyle.Danger),
-                    new ButtonBuilder()
-                        .setCustomId("cancel-range-delete")
-                        .setLabel("Cancel")
-                        .setStyle(ButtonStyle.Secondary)
-                );
+                const prompt = `Found **${rolesInRange.size}** roles between **${startRole.name}** and **${endRole.name}**.\n` +
+                    `**Roles to delete (${rolesToDelete.length}):**\n${roleNames}\n` +
+                    (skippedRoles.length > 0 ? `⚠️ **Skipped (${skippedRoles.length}):**\n${skippedRoles.map(s => `- ${s}`).join("\n")}\n` : "") +
+                    `\n**Are you sure you want to delete these roles? This cannot be undone.**`;
 
-                const response = await interaction.editReply({
-                    content:
-                        `Found **${rolesInRange.size}** roles between **${startRole.name}** and **${endRole.name}**.\n` +
-                        `**Roles to delete (${rolesToDelete.length}):** ${roleNames}\n` +
-                        (skippedRoles.length > 0
-                            ? `⚠️ **Skipped (${skippedRoles.length}):** ${skippedRoles.join(", ")}\n`
-                            : "") +
-                        `\n**Are you sure you want to delete these roles? This cannot be undone.**`,
-                    components: [confirmRow],
-                    flags: MessageFlags.Ephemeral,
+                const confirmed = await confirmAction(interaction, prompt);
+                if (!confirmed) return;
+
+                // Proceed with deletion
+                await interaction.editReply({
+                    content: `Deleting ${rolesToDelete.length} roles...`,
+                    components: [],
                 });
-
-                try {
-                    const confirmation = await response.awaitMessageComponent({
-                        filter: (i) =>
-                            (i.customId === "confirm-range-delete" ||
-                                i.customId === "cancel-range-delete") &&
-                            i.user.id === interaction.user.id,
-                        time: 30000,
-                    });
-
-                    if (confirmation.customId === "cancel-range-delete") {
-                        await confirmation.update({
-                            content: "Range deletion cancelled.",
-                            components: [],
-                        });
-                        return;
-                    }
-
-                    // Proceed with deletion
-                    await confirmation.update({
-                        content: `Deleting ${rolesToDelete.length} roles...`,
-                        components: [],
-                    });
 
                     let successCount = 0;
                     let failCount = 0;
@@ -1884,20 +1839,11 @@ module.exports = {
                             `**Range Deletion Complete**\n` +
                             `✅ Successfully deleted: ${successCount}\n` +
                             (failCount > 0
-                                ? `❌ Failed: ${failCount} (${failedNames.join(
-                                    ", "
-                                )})`
+                                ? `❌ Failed: ${failCount}\n${failedNames.map(f => `- ${f}`).join("\n")}`
                                 : ""),
                         components: [],
                     });
-                } catch (e) {
-                    // Timeout or other error
-                    await interaction.editReply({
-                        content: "Confirmation timed out or an error occurred.",
-                        components: [],
-                    });
                 }
-            }
 
             // ============================
             // === Single Target Logic ===
@@ -1939,6 +1885,10 @@ module.exports = {
                         flags: MessageFlags.Ephemeral,
                     });
                 }
+
+                const prompt = `Are you sure you want to delete the role "${targetRole.name}"?`;
+                const confirmed = await confirmAction(interaction, prompt);
+                if (!confirmed) return;
 
                 try {
                     // Store role name for confirmation message
@@ -2017,6 +1967,13 @@ module.exports = {
                         flags: MessageFlags.Ephemeral,
                     });
                 }
+
+                const prompt = deleteSecondary 
+                    ? `Are you sure you want to transfer members from "${secondaryRole.name}" to "${primaryRole.name}" AND DELETE "${secondaryRole.name}"?`
+                    : `Are you sure you want to transfer members from "${secondaryRole.name}" to "${primaryRole.name}"?`;
+                
+                const confirmed = await confirmAction(interaction, prompt);
+                if (!confirmed) return;
 
                 try {
                     // --- 2. Fetch Members ---
@@ -2167,10 +2124,10 @@ module.exports = {
 
                         // Show confirmation with selected role names
                         const roleNames = selectedRoleObjects
-                            .map((r) => `"${r?.name || "unknown"}"`)
-                            .join(", ");
+                            .map((r) => `- ${r?.name || "Unknown Role"}`)
+                            .join("\n");
                         await interaction.editReply({
-                            content: `You are about to delete ${selectedRoles.length} role(s): ${roleNames}\n⚠️ **This action cannot be undone!** Are you sure?`,
+                            content: `You are about to delete ${selectedRoles.length} role(s):\n${roleNames}\n\n⚠️ **This action cannot be undone!** Are you sure?`,
                             components: [confirmRow],
                             flags: MessageFlags.Ephemeral,
                         });
@@ -2295,15 +2252,11 @@ module.exports = {
                                     let resultMessage = `Results of role deletion:\n✅ Successfully deleted: ${successCount} role(s)`;
 
                                     if (skippedCount > 0) {
-                                        resultMessage += `\n⚠️ Skipped due to hierarchy: ${skippedCount} role(s) [${skippedRoles.join(
-                                            ", "
-                                        )}]`;
+                                        resultMessage += `\n⚠️ Skipped due to hierarchy: ${skippedCount} role(s):\n${skippedRoles.map(s => `- ${s}`).join("\n")}`;
                                     }
 
                                     if (errorCount > 0) {
-                                        resultMessage += `\n❌ Failed to delete: ${errorCount} role(s) [${errorRoles.join(
-                                            ", "
-                                        )}]`;
+                                        resultMessage += `\n❌ Failed to delete: ${errorCount} role(s):\n${errorRoles.map(e => `- ${e}`).join("\n")}`;
                                     }
 
                                     // Update with the final results
@@ -2413,7 +2366,7 @@ module.exports = {
                     return interaction.editReply({ content: "No roles found strictly between the specified range." });
                 }
 
-                const roleList = rolesInRange.map(r => `**${r.name}**`).join(", ");
+                const roleList = rolesInRange.map(r => `- **${r.name}**`).join("\n");
                 
                 const confirmButton = new ButtonBuilder()
                     .setCustomId(`confirm-reorder-${interaction.id}`)

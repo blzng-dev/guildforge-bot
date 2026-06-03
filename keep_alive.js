@@ -5,6 +5,6 @@ const server = http
         res.writeHead(200, { "Content-Type": "text/plain" });
         res.end("OK");
     })
-    .listen(8080, () => {
-        console.log(`Keepalive server running on port 8080`);
+    .listen(8081, () => {
+        console.log(`Keepalive server running on port 8081`);
     });

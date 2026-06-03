@@ -1,6 +1,5 @@
 // Require the necessary discord.js classes
 const fs = require("node:fs");
-require("dotenv").config();
 const keep_alive = require("./keep_alive.js");
 const path = require("node:path");
 const {

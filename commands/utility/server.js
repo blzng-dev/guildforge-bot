@@ -12,30 +12,30 @@ module.exports = {
     category: "utility",
     data: new SlashCommandBuilder()
         .setName("server")
-        .setDescription("Manage server-level settings.")
+        .setDescription("manage server-level settings")
         .setDefaultMemberPermissions(PermissionsBitField.Flags.ManageGuild)
         .setDMPermission(false)
         .addSubcommand((subcommand) =>
             subcommand
                 .setName("community")
-                .setDescription("Enable or disable community features for this server.")
+                .setDescription("toggle community features")
                 .addBooleanOption((option) =>
                     option
                         .setName("enabled")
-                        .setDescription("Whether to enable or disable community features.")
+                        .setDescription("enable or disable community")
                         .setRequired(true)
                 )
                 .addChannelOption((option) =>
                     option
                         .setName("rules_channel")
-                        .setDescription("The channel to use for server rules (optional: will be created if not specified).")
+                        .setDescription("channel for server rules (optional)")
                         .addChannelTypes(ChannelType.GuildText)
                         .setRequired(false)
                 )
                 .addChannelOption((option) =>
                     option
                         .setName("updates_channel")
-                        .setDescription("The channel to use for community updates (optional: will be created if not specified).")
+                        .setDescription("channel for community updates (optional)")
                         .addChannelTypes(ChannelType.GuildText)
                         .setRequired(false)
                 )
@@ -43,11 +43,11 @@ module.exports = {
         .addSubcommand((subcommand) =>
             subcommand
                 .setName("verification")
-                .setDescription("Set the server's verification level.")
+                .setDescription("set server verification level")
                 .addIntegerOption((option) =>
                     option
                         .setName("level")
-                        .setDescription("The verification level to set.")
+                        .setDescription("the verification level to set")
                         .setRequired(true)
                         .addChoices(
                             { name: "None (Unrestricted)", value: 0 },
@@ -56,6 +56,28 @@ module.exports = {
                             { name: "High (Member 10+ mins)", value: 3 },
                             { name: "Highest (Verified Phone)", value: 4 }
                         )
+                )
+        )
+        .addSubcommandGroup((group) =>
+            group
+                .setName("auditlog")
+                .setDescription("configure the audit logging system")
+                .addSubcommand((subcommand) =>
+                    subcommand
+                        .setName("set")
+                        .setDescription("set the channel for audit logs")
+                        .addChannelOption((option) =>
+                            option
+                                .setName("channel")
+                                .setDescription("the channel to send logs to")
+                                .addChannelTypes(ChannelType.GuildText)
+                                .setRequired(true)
+                        )
+                )
+                .addSubcommand((subcommand) =>
+                    subcommand
+                        .setName("disable")
+                        .setDescription("disable audit logging")
                 )
         ),
 
@@ -73,6 +95,7 @@ module.exports = {
             });
         }
 
+        const subcommandGroup = interaction.options.getSubcommandGroup(false);
         const subcommand = interaction.options.getSubcommand();
         // Defer the reply immediately to avoid interaction timeouts
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
@@ -80,6 +103,19 @@ module.exports = {
         try {
             const guild = interaction.guild;
             const rest = new REST().setToken(process.env.TOKEN);
+
+            if (subcommandGroup === "auditlog") {
+                const { setSetting } = require("../../utils/db.js");
+                if (subcommand === "set") {
+                    const channel = interaction.options.getChannel("channel");
+                    await setSetting(guild.id, "auditLogChannel", channel.id);
+                    await interaction.editReply(`Audit log channel has been set to ${channel}.`);
+                } else if (subcommand === "disable") {
+                    await setSetting(guild.id, "auditLogChannel", null);
+                    await interaction.editReply("Audit logging has been disabled.");
+                }
+                return;
+            }
 
             if (subcommand === "verification") {
                 const level = interaction.options.getInteger("level");

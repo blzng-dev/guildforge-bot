@@ -1,6 +1,5 @@
 const { REST, Routes } = require("discord.js");
 const fs = require("node:fs");
-require("dotenv").config();
 const path = require("node:path");
 const token = process.env.TOKEN;
 const clientId = process.env.CLIENTID;
@@ -44,13 +43,11 @@ const rest = new REST().setToken(token);
         );
 
         // Clear any orphaned test guild commands that were causing duplicates
-        console.log("Cleaning up orphaned test guild commands...");
         await rest.put(Routes.applicationGuildCommands(clientId, '1019267320285237249'), {
             body: [],
         });
         
         // The put method is used to fully refresh all commands globally with the current set
-        console.log("Deploying commands globally...");
         const data = await rest.put(Routes.applicationCommands(clientId), {
             body: commands,
         });

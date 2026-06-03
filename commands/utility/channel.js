@@ -18,6 +18,25 @@ const {
 } = require("discord.js");
 const { REST } = require("@discordjs/rest");
 const { setTimeout: wait } = require("node:timers/promises"); // For delays
+const { confirmAction } = require("../../utils/confirm.js");
+const { ProgressReporter } = require("../../utils/progress.js");
+const { logAction } = require("../../utils/logger.js");
+
+const DIVIDER_CHOICES = [
+    { name: "Line │", value: "│" },
+    { name: "Dot ・", value: "・" },
+    { name: "Custom", value: "custom" },
+    { name: "Undo", value: "undo" },
+];
+
+const RENAMEABLE_CHANNEL_TYPES = [
+    ChannelType.GuildText,
+    ChannelType.GuildVoice,
+    ChannelType.GuildAnnouncement,
+    ChannelType.GuildStageVoice,
+    ChannelType.GuildForum,
+    ChannelType.GuildMedia,
+];
 
 // Mapping command option names to permission flags
 // *** Keys MUST be lowercase_with_underscores ***
@@ -103,22 +122,17 @@ module.exports = {
         .setDefaultMemberPermissions(PermissionsBitField.Flags.ManageGuild)
         .setDMPermission(false)
 
-        // --- BULK SUBCOMMAND GROUP ---
-        .addSubcommandGroup((group) =>
-            group
-                .setName("bulk")
-                .setDescription("bulk operations for channels")
-                .addSubcommand((subcommand) =>
-                    subcommand
-                        .setName("create")
-                        .setDescription("create multiple channels via a modal")
-                        .addStringOption((option) =>
-                            option
-                                .setName("category")
-                                .setDescription("parent category (start typing...)")
-                                .setRequired(false)
-                                .setAutocomplete(true)
-                        )
+        // --- CREATE-BULK SUBCOMMAND ---
+        .addSubcommand((subcommand) =>
+            subcommand
+                .setName("create-bulk")
+                .setDescription("create multiple channels via modal")
+                .addStringOption((option) =>
+                    option
+                        .setName("category")
+                        .setDescription("parent category (start typing...)")
+                        .setRequired(false)
+                        .setAutocomplete(true)
                 )
         )
 
@@ -126,11 +140,11 @@ module.exports = {
         .addSubcommand((subcommand) =>
             subcommand
                 .setName("preset")
-                .setDescription("creates a set of channels based on a template")
+                .setDescription("creates channels from a template")
                 .addStringOption((option) =>
                     option
                         .setName("preset_name")
-                        .setDescription("the channel preset template to use")
+                        .setDescription("the preset template to use")
                         .setRequired(true)
                         .addChoices({
                             name: "General Server Setup",
@@ -143,17 +157,17 @@ module.exports = {
         .addSubcommand((subcommand) =>
             subcommand
                 .setName("create")
-                .setDescription("creates a new channel with specified options")
+                .setDescription("create a new channel")
                 .addStringOption((option) =>
                     option
                         .setName("name")
-                        .setDescription("the name for the new channel")
+                        .setDescription("name for the new channel")
                         .setRequired(true)
                 )
                 .addIntegerOption((option) =>
                     option
                         .setName("type")
-                        .setDescription("the type of channel to create")
+                        .setDescription("type of channel to create")
                         .setRequired(true)
                         .addChoices(
                             { name: "text", value: ChannelType.GuildText },
@@ -184,17 +198,13 @@ module.exports = {
                 .addStringOption((option) =>
                     option
                         .setName("description")
-                        .setDescription(
-                            "topic/description (text/forum/announce)"
-                        )
+                        .setDescription("topic or description")
                         .setRequired(false)
                 )
                 .addBooleanOption((option) =>
                     option
                         .setName("readonly")
-                        .setDescription(
-                            "make read-only for @everyone? (text/announce)"
-                        )
+                        .setDescription("make read-only for everyone")
                         .setRequired(false)
                 )
         )
@@ -203,60 +213,46 @@ module.exports = {
         .addSubcommandGroup((group) =>
             group
                 .setName("clone")
-                .setDescription(
-                    "clones a channel or an entire category to a different server"
-                )
+                .setDescription("clones a channel or category to another server")
                 // --- Clone a single channel ---
                 .addSubcommand((subcommand) =>
                     subcommand
                         .setName("channel")
-                        .setDescription(
-                            "clones a single channel (text, voice, forum, etc.) from one server to another"
-                        )
+                        .setDescription("clones a single channel")
                         .addStringOption((option) =>
                             option
                                 .setName("source_server_id")
-                                .setDescription(
-                                    "the ID of the server to copy FROM"
-                                )
+                                .setDescription("the server id to copy from")
                                 .setRequired(true)
                         )
                         .addStringOption((option) =>
                             option
                                 .setName("target_server_id")
-                                .setDescription(
-                                    "the ID of the server to copy TO"
-                                )
+                                .setDescription("the server id to copy to")
                                 .setRequired(true)
                         )
                         .addStringOption((option) =>
                             option
                                 .setName("source_channel_id")
-                                .setDescription("the ID of the channel to copy")
+                                .setDescription("the id of the channel to copy")
                                 .setRequired(true)
                         )
                         .addStringOption((option) =>
                             option
                                 .setName("target_category_id")
-                                .setDescription(
-                                    "ID of a category in the target server to place the new channel under (optional)"
-                                )
+                                .setDescription("target category id (optional)")
                                 .setRequired(false)
                         )
                         .addBooleanOption((option) =>
                             option
                                 .setName("copy_posts")
-                                .setDescription(
-                                    "for forums: copy every forum post title and tags? (default: true)"
-                                )
+                                .setDescription("copy forum posts (default true)")
                                 .setRequired(false)
                         )
                         .addStringOption((option) =>
                             option
                                 .setName("post_description")
-                                .setDescription(
-                                    "for forums: the initial description message for each cloned forum post"
-                                )
+                                .setDescription("initial description for cloned posts")
                                 .setRequired(false)
                         )
                 )
@@ -264,47 +260,35 @@ module.exports = {
                 .addSubcommand((subcommand) =>
                     subcommand
                         .setName("category")
-                        .setDescription(
-                            "clones an entire category and all its channels from one server to another"
-                        )
+                        .setDescription("clones an entire category")
                         .addStringOption((option) =>
                             option
                                 .setName("source_server_id")
-                                .setDescription(
-                                    "the ID of the server to copy FROM"
-                                )
+                                .setDescription("the server id to copy from")
                                 .setRequired(true)
                         )
                         .addStringOption((option) =>
                             option
                                 .setName("target_server_id")
-                                .setDescription(
-                                    "the ID of the server to copy TO"
-                                )
+                                .setDescription("the server id to copy to")
                                 .setRequired(true)
                         )
                         .addStringOption((option) =>
                             option
                                 .setName("source_category_id")
-                                .setDescription(
-                                    "the ID of the category to copy"
-                                )
+                                .setDescription("the category id to copy")
                                 .setRequired(true)
                         )
                         .addBooleanOption((option) =>
                             option
                                 .setName("copy_posts")
-                                .setDescription(
-                                    "for forums: copy every forum post title and tags? (default: true)"
-                                )
+                                .setDescription("copy forum posts (default true)")
                                 .setRequired(false)
                         )
                         .addStringOption((option) =>
                             option
                                 .setName("post_description")
-                                .setDescription(
-                                    "for forums: the initial description message for each cloned forum post"
-                                )
+                                .setDescription("initial description for cloned posts")
                                 .setRequired(false)
                         )
                 )
@@ -326,9 +310,7 @@ module.exports = {
             subcommand.addMentionableOption((option) =>
                 option
                     .setName("target")
-                    .setDescription(
-                        "the role or user whose permissions to adjust"
-                    )
+                    .setDescription("the role or user to adjust")
                     .setRequired(true)
             );
 
@@ -356,9 +338,7 @@ module.exports = {
         .addSubcommand((subcommand) =>
             subcommand
                 .setName("sync")
-                .setDescription(
-                    "syncs permissions for all channels in a category to match the category"
-                )
+                .setDescription("sync permissions from category")
                 .addChannelOption((option) =>
                     option
                         .setName("category")
@@ -372,23 +352,17 @@ module.exports = {
         .addSubcommand((subcommand) =>
             subcommand
                 .setName("delete")
-                .setDescription(
-                    "delete a channel or multiple channels from the server"
-                )
+                .setDescription("delete channels")
                 .addChannelOption((option) =>
                     option
                         .setName("channel")
-                        .setDescription(
-                            "the channel to delete (leave empty to select multiple channels)"
-                        )
+                        .setDescription("channel to delete (leave empty for multiple)")
                         .setRequired(false)
                 )
                 .addBooleanOption((option) =>
                     option
                         .setName("delete_all")
-                        .setDescription(
-                            "if target is a category, delete all channels within it (ignored for non-categories)"
-                        )
+                        .setDescription("delete all channels in category")
                         .setRequired(false)
                 )
         )
@@ -397,16 +371,86 @@ module.exports = {
         .addSubcommand((subcommand) =>
             subcommand
                 .setName("clear")
-                .setDescription(
-                    "clear all permission overwrites from a channel or multiple channels"
-                )
+                .setDescription("clear permission overwrites")
                 .addChannelOption((option) =>
                     option
                         .setName("channel")
-                        .setDescription(
-                            "the channel to clear permissions from (leave empty to select multiple)"
-                        )
+                        .setDescription("channel to clear (leave empty for multiple)")
                         .setRequired(false)
+                )
+        )
+
+        // --- Divider Subcommand Group ---
+        .addSubcommandGroup((group) =>
+            group
+                .setName("divider")
+                .setDescription("adds a divider prefix to channel names")
+                .addSubcommand((subcommand) =>
+                    subcommand
+                        .setName("server")
+                        .setDescription("apply divider to all channels in server")
+                        .addStringOption((option) =>
+                            option
+                                .setName("divider_type")
+                                .setDescription("the divider symbol to use")
+                                .setRequired(true)
+                                .addChoices(...DIVIDER_CHOICES)
+                        )
+                        .addStringOption((option) =>
+                            option
+                                .setName("custom_divider")
+                                .setDescription("custom divider symbol")
+                                .setRequired(false)
+                        )
+                )
+                .addSubcommand((subcommand) =>
+                    subcommand
+                        .setName("category")
+                        .setDescription("apply divider to channels in a category")
+                        .addStringOption((option) =>
+                            option
+                                .setName("target_category")
+                                .setDescription("the category to apply dividers within")
+                                .setRequired(true)
+                                .setAutocomplete(true)
+                        )
+                        .addStringOption((option) =>
+                            option
+                                .setName("divider_type")
+                                .setDescription("the divider symbol to use")
+                                .setRequired(true)
+                                .addChoices(...DIVIDER_CHOICES)
+                        )
+                        .addStringOption((option) =>
+                            option
+                                .setName("custom_divider")
+                                .setDescription("custom divider symbol")
+                                .setRequired(false)
+                        )
+                )
+                .addSubcommand((subcommand) =>
+                    subcommand
+                        .setName("channel")
+                        .setDescription("apply divider to a specific channel")
+                        .addChannelOption((option) =>
+                            option
+                                .setName("target_channel")
+                                .setDescription("the channel to apply the divider to")
+                                .setRequired(true)
+                        )
+                        .addStringOption((option) =>
+                            option
+                                .setName("divider_type")
+                                .setDescription("the divider symbol to use")
+                                .setRequired(true)
+                                .addChoices(...DIVIDER_CHOICES)
+                        )
+                        .addStringOption((option) =>
+                            option
+                                .setName("custom_divider")
+                                .setDescription("custom divider symbol")
+                                .setRequired(false)
+                        )
                 )
         ),
 
@@ -427,7 +471,7 @@ module.exports = {
         const subcommand = interaction.options.getSubcommand();
         const subcommandGroup = interaction.options.getSubcommandGroup();
 
-        if (subcommandGroup === "bulk" && subcommand === "create") {
+        if (subcommand === "create-bulk") {
             const modal = new ModalBuilder()
                 .setCustomId('bulk_channel_create_modal')
                 .setTitle('Bulk Channel Create');
@@ -463,7 +507,10 @@ module.exports = {
                         return;
                     }
 
+                    const reporter = new ProgressReporter(submitted, parts.length, "Bulk Creating Channels");
                     let createdCount = 0;
+                    let failedCount = 0;
+
                     for (const part of parts) {
                         let isCategory = false, type = '--t', isReadonly = false, isReadonlyStrict = false, isPrivate = false, isPublic = false;
                         let cleanWords = [];
@@ -482,61 +529,71 @@ module.exports = {
                         }
                         let cleanName = cleanWords.join('-').toLowerCase();
 
-                        if (isCategory) {
-                            const catName = cleanWords.join(' ');
-                            currentCategory = await interaction.guild.channels.create({
-                                name: catName,
-                                type: ChannelType.GuildCategory
-                            });
-                            createdCount++;
-                        } else {
-                            let channelTypeEnum = ChannelType.GuildText;
-                            if (type === '--v') channelTypeEnum = ChannelType.GuildVoice;
-                            else if (type === '--s') channelTypeEnum = ChannelType.GuildStageVoice;
-                            else if (type === '--f') channelTypeEnum = ChannelType.GuildForum;
-                            else if (type === '--a') channelTypeEnum = ChannelType.GuildAnnouncement;
+                        try {
+                            if (isCategory) {
+                                const catName = cleanWords.join(' ');
+                                currentCategory = await interaction.guild.channels.create({
+                                    name: catName,
+                                    type: ChannelType.GuildCategory
+                                });
+                                createdCount++;
+                            } else {
+                                let channelTypeEnum = ChannelType.GuildText;
+                                if (type === '--v') channelTypeEnum = ChannelType.GuildVoice;
+                                else if (type === '--s') channelTypeEnum = ChannelType.GuildStageVoice;
+                                else if (type === '--f') channelTypeEnum = ChannelType.GuildForum;
+                                else if (type === '--a') channelTypeEnum = ChannelType.GuildAnnouncement;
 
-                            let permissionOverwrites = [];
+                                let permissionOverwrites = [];
 
-                            if (isPrivate) {
-                                permissionOverwrites.push({
-                                    id: interaction.guild.roles.everyone.id,
-                                    deny: [PermissionFlagsBits.ViewChannel],
-                                });
-                            } else if (isReadonlyStrict) {
-                                permissionOverwrites.push({
-                                    id: interaction.guild.roles.everyone.id,
-                                    deny: [
-                                        PermissionFlagsBits.SendMessages,
-                                        PermissionFlagsBits.SendMessagesInThreads,
-                                        PermissionFlagsBits.AddReactions,
-                                        PermissionFlagsBits.CreatePublicThreads,
-                                        PermissionFlagsBits.CreatePrivateThreads,
-                                        PermissionFlagsBits.UseApplicationCommands
-                                    ],
-                                });
-                            } else if (isReadonly) {
-                                permissionOverwrites.push({
-                                    id: interaction.guild.roles.everyone.id,
-                                    deny: [
-                                        PermissionFlagsBits.SendMessages,
-                                    ],
-                                });
+                                if (isPrivate) {
+                                    permissionOverwrites.push({
+                                        id: interaction.guild.roles.everyone.id,
+                                        deny: [PermissionFlagsBits.ViewChannel],
+                                    });
+                                } else if (isReadonlyStrict) {
+                                    permissionOverwrites.push({
+                                        id: interaction.guild.roles.everyone.id,
+                                        deny: [
+                                            PermissionFlagsBits.SendMessages,
+                                            PermissionFlagsBits.SendMessagesInThreads,
+                                            PermissionFlagsBits.AddReactions,
+                                            PermissionFlagsBits.CreatePublicThreads,
+                                            PermissionFlagsBits.CreatePrivateThreads,
+                                            PermissionFlagsBits.UseApplicationCommands
+                                        ],
+                                    });
+                                } else if (isReadonly) {
+                                    permissionOverwrites.push({
+                                        id: interaction.guild.roles.everyone.id,
+                                        deny: [
+                                            PermissionFlagsBits.SendMessages,
+                                        ],
+                                    });
+                                }
+
+                                const channelOptions = {
+                                    name: cleanName,
+                                    type: channelTypeEnum,
+                                    permissionOverwrites: permissionOverwrites.length > 0 ? permissionOverwrites : undefined,
+                                    parent: currentCategory?.id || null
+                                };
+
+                                await interaction.guild.channels.create(channelOptions);
+                                createdCount++;
                             }
-
-                            const channelOptions = {
-                                name: cleanName,
-                                type: channelTypeEnum,
-                                permissionOverwrites: permissionOverwrites.length > 0 ? permissionOverwrites : undefined,
-                                parent: currentCategory?.id || null
-                            };
-
-                            await interaction.guild.channels.create(channelOptions);
-                            createdCount++;
+                            await reporter.update(true);
+                            await wait(1000); // Rate limit delay
+                        } catch (error) {
+                            console.error("Failed to create channel/category:", error);
+                            failedCount++;
+                            await reporter.update(false);
                         }
                     }
 
-                    await submitted.editReply(`Successfully created ${createdCount} channels/categories.`);
+                    const finalMsg = `Successfully created ${createdCount} channels/categories. ${failedCount > 0 ? `(${failedCount} failed)` : ''}`;
+                    await reporter.finish(finalMsg);
+                    await logAction(interaction.guild, `**Bulk Created Channels**\nCreated ${createdCount} channels/categories by ${interaction.user.tag}`);
                 }
             } catch (err) {
                 if (err.code !== 'InteractionCollectorError') {
@@ -645,6 +702,7 @@ module.exports = {
                     await interaction.editReply({
                         content: `✅ **Successfully cloned channel:** ${sourceChannel.name}`,
                     });
+                    await logAction(interaction.guild, `**Cloned Channel**\nCloned ${sourceChannel.name} from ${sourceGuild.name} to ${targetGuild.name} by ${interaction.user.tag}`);
 
                     // === Clone an entire category ===
                 } else if (subcommand === "category") {
@@ -726,6 +784,7 @@ module.exports = {
                     await interaction.editReply({
                         content: "✅ Cloning process finished.",
                     });
+                    await logAction(interaction.guild, `**Cloned Category**\nCloned ${sourceCategory.name} with ${clonedCount} channels from ${sourceGuild.name} to ${targetGuild.name} by ${interaction.user.tag}`);
                 }
 
                 // --- 4. Send summary of skipped emojis (if any) ---
@@ -1109,6 +1168,7 @@ module.exports = {
                             await wait(500);
                         }
                     }
+                    await logAction(interaction.guild, `**Created Channels with Preset**\nPreset: ${presetName}\nCreated: ${createdCount} by ${interaction.user.tag}`);
                 }
             } catch (err) {
                 console.error(
@@ -1199,6 +1259,7 @@ module.exports = {
                     content: `Successfully created ${ChannelType[channelType]} channel: <#${newChannel.id}>`,
                     flags: MessageFlags.Ephemeral,
                 });
+                await logAction(interaction.guild, `**Created Channel**\nCreated ${newChannel.name} by ${interaction.user.tag}`);
             } catch (error) {
                 console.error(
                     `Error creating channel "${channelName}":`,
@@ -1231,6 +1292,7 @@ module.exports = {
                         content: `Successfully renamed channel from "${oldName}" to "${newName}" (<#${targetChannel.id}>).`,
                         flags: MessageFlags.Ephemeral,
                     });
+                    await logAction(interaction.guild, `**Renamed Channel**\nRenamed ${oldName} to ${newName} by ${interaction.user.tag}`);
                     // If no target was provided, we're done
                     if (!targetMentionable) return;
                 } catch (error) {
@@ -1348,6 +1410,7 @@ module.exports = {
                         content: `Successfully updated permissions for ${mentionableType} ${mentionString} in channel <#${targetChannel.id}>.`,
                         flags: MessageFlags.Ephemeral,
                     });
+                    await logAction(interaction.guild, `**Updated Permissions**\nUpdated permissions for ${mentionableType} in ${targetChannel.name} by ${interaction.user.tag}`);
                 } catch (error) {
                     console.error(
                         `Error updating permissions in channel ${targetChannel.id}:`,
@@ -1608,15 +1671,14 @@ module.exports = {
 
                 let replyMessage = `Synced permissions for ${syncedCount} channel(s) with category <#${category.id}>.`;
                 if (failedCount > 0) {
-                    replyMessage += `\n⚠️ Failed to sync ${failedCount} channel(s): ${failedChannels.join(
-                        ", "
-                    )}`;
+                    replyMessage += `\n⚠️ Failed to sync ${failedCount} channel(s):\n${failedChannels.map(c => `- ${c}`).join("\n")}`;
                 }
 
                 await interaction.editReply({
                     content: replyMessage,
                     flags: MessageFlags.Ephemeral,
                 });
+                await logAction(interaction.guild, `**Synced Permissions**\nSynced ${syncedCount} channels with category ${category.name} by ${interaction.user.tag}`);
             } catch (error) {
                 console.error(
                     `Error syncing permissions for category ${category.id}:`,
@@ -1638,10 +1700,15 @@ module.exports = {
 
             // If a channel was provided directly
             if (targetChannel) {
+                const isCategory = targetChannel?.type === ChannelType.GuildCategory;
+                const prompt = isCategory && deleteAll 
+                    ? `Are you sure you want to delete category "${targetChannel.name}" and ALL its channels?`
+                    : `Are you sure you want to delete ${isCategory ? "category" : "channel"} "${targetChannel.name}"?`;
+                
+                const confirmed = await confirmAction(interaction, prompt);
+                if (!confirmed) return;
+
                 try {
-                    // Check if channel is a category
-                    const isCategory =
-                        targetChannel?.type === ChannelType.GuildCategory;
 
                     // If it's a category and deleteAll is true, delete all child channels first
                     if (isCategory && deleteAll) {
@@ -1694,10 +1761,8 @@ module.exports = {
                                     .editReply({
                                         content:
                                             `Deleted ${deletedCount} channels from category ${targetChannel.name}.\n` +
-                                            `⚠️ Failed to delete ${failedCount} channels: ${failedChannels.join(
-                                                ", "
-                                            )}\n` +
-                                            `Now attempting to delete the category...`,
+                                            `\n⚠️ Failed to delete ${failedCount} channels:\n${failedChannels.map(c => `- ${c}`).join("\n")}` +
+                                            `\nNow attempting to delete the category...`,
                                         flags: MessageFlags.Ephemeral,
                                     })
                                     .catch((err) => {
@@ -1740,6 +1805,7 @@ module.exports = {
                         await targetChannel.delete(
                             `Deleted by ${interaction.user.tag} using the channel delete command`
                         );
+                        await logAction(interaction.guild, `**Deleted Channel**\nDeleted ${channelName} by ${interaction.user.tag}`);
 
                         // Final response message
                         let finalMessage = `Successfully deleted ${channelType === ChannelType.GuildCategory
@@ -1877,11 +1943,11 @@ module.exports = {
 
                         // Show confirmation with selected channel names
                         const channelNames = selectedChannelObjects
-                            .map((c) => `"#${c?.name || "unknown"}"`)
-                            .join(", ");
+                            .map((ch) => `- ${ch.name}`)
+                            .join("\n");
                         await interaction
                             .editReply({
-                                content: `You are about to delete ${selectedChannels.length} channel(s): ${channelNames}\n⚠️ **This action cannot be undone!** Are you sure?`,
+                                content: `You are about to delete ${selectedChannels.length} channel(s):\n${channelNames}\n⚠️ **This action cannot be undone!** Are you sure?`,
                                 components: [confirmRow],
                                 flags: MessageFlags.Ephemeral,
                             })
@@ -1991,6 +2057,7 @@ module.exports = {
                                                 `Deleted by ${interaction.user.tag} using channel delete command`
                                             );
                                             successCount++;
+                                            await logAction(interaction.guild, `**Deleted Channel**\nDeleted ${channelName} by ${interaction.user.tag}`);
                                         } catch (error) {
                                             console.error(
                                                 `Error deleting channel ${channel?.name || "unknown"
@@ -2010,9 +2077,7 @@ module.exports = {
                                     let resultMessage = `Results of channel deletion:\n✅ Successfully deleted: ${successCount} channel(s)`;
 
                                     if (errorCount > 0) {
-                                        resultMessage += `\n❌ Failed to delete: ${errorCount} channel(s) [${errorChannels.join(
-                                            ", "
-                                        )}]`;
+                                        resultMessage += `\n❌ Failed to delete: ${errorCount} channel(s):\n${errorChannels.map(e => `- ${e}`).join("\n")}`;
                                     }
 
                                     // Update with the final results
@@ -2067,12 +2132,17 @@ module.exports = {
 
             // If a channel was provided directly
             if (targetChannel) {
+                const prompt = `Are you sure you want to clear all permission overwrites from "${targetChannel.name}"?`;
+                const confirmed = await confirmAction(interaction, prompt);
+                if (!confirmed) return;
+
                 try {
                     // Clear all permission overwrites by setting an empty array
                     await targetChannel.permissionOverwrites.set(
                         [],
                         `Permission overwrites cleared by ${interaction.user.tag}`
                     );
+                    await logAction(interaction.guild, `**Cleared Permissions**\nCleared all permissions for ${targetChannel.name} by ${interaction.user.tag}`);
 
                     await interaction
                         .editReply({
@@ -2168,6 +2238,12 @@ module.exports = {
                             return collector.stop();
                         }
 
+                        collector.stop();
+
+                        const prompt = `Are you sure you want to clear all permission overwrites from ${selectedChannels.length} channel(s)?`;
+                        const confirmed = await confirmAction(i, prompt);
+                        if (!confirmed) return;
+
                         let successCount = 0;
                         let errorCount = 0;
                         let errorChannels = [];
@@ -2207,9 +2283,7 @@ module.exports = {
                         let resultMessage = `Results of clearing permission overwrites:\n✅ Successfully cleared: ${successCount} channel(s)`;
 
                         if (errorCount > 0) {
-                            resultMessage += `\n❌ Failed to clear: ${errorCount} channel(s) [${errorChannels.join(
-                                ", "
-                            )}]`;
+                            resultMessage += `\n❌ Failed to clear: ${errorCount} channel(s):\n${errorChannels.map(e => `- ${e}`).join("\n")}`;
                         }
 
                         // Update the message with results
@@ -2225,8 +2299,7 @@ module.exports = {
                                     err
                                 );
                             });
-
-                        collector.stop();
+                        await logAction(interaction.guild, `**Cleared Permissions**\nCleared all permissions for ${successCount} channels by ${interaction.user.tag}`);
                     });
 
                     collector.on("end", (collected, reason) => {
@@ -2256,6 +2329,108 @@ module.exports = {
                             );
                         });
                 }
+            }
+        }
+        // ============================
+        // === DIVIDER Subcommand Group ===
+        // ============================
+        else if (subcommandGroup === "divider") {
+            const dividerType = interaction.options.getString('divider_type');
+            const customDivider = interaction.options.getString('custom_divider');
+
+            let dividerSymbol = dividerType;
+            const isUndo = dividerType === 'undo';
+
+            // Validate and get custom divider
+            if (dividerType === 'custom') {
+                if (!customDivider) {
+                    return interaction.editReply({ content: 'You must provide a symbol for the `custom_divider` option when selecting type Custom.', flags: MessageFlags.Ephemeral });
+                }
+                dividerSymbol = customDivider.trim();
+            }
+
+            let targetChannels = [];
+            let scopeDescription = '';
+
+            try {
+                // --- Determine Target Channels based on Subcommand --- 
+                if (subcommand === 'server') {
+                    scopeDescription = 'the entire server';
+                    targetChannels = interaction.guild.channels.cache.filter(ch =>
+                        RENAMEABLE_CHANNEL_TYPES.includes(ch.type)
+                    ).map(ch => ch); 
+
+                } else if (subcommand === 'category') {
+                    const categoryId = interaction.options.getString('target_category');
+                    const category = interaction.guild.channels.cache.get(categoryId);
+
+                    if (!category || category.type !== ChannelType.GuildCategory) {
+                        return interaction.editReply({ content: `Invalid category selection (ID: ${categoryId}). Please choose a valid category.`, flags: MessageFlags.Ephemeral });
+                    }
+                    scopeDescription = `category "${category.name}"`;
+                    targetChannels = interaction.guild.channels.cache.filter(ch =>
+                        RENAMEABLE_CHANNEL_TYPES.includes(ch.type) && ch.parentId === categoryId
+                    ).map(ch => ch); 
+
+                } else if (subcommand === 'channel') {
+                    const channel = interaction.options.getChannel('target_channel');
+                    if (!RENAMEABLE_CHANNEL_TYPES.includes(channel.type)) {
+                        return interaction.editReply({ content: `Cannot apply divider to channel type: ${ChannelType[channel.type]}.`, flags: MessageFlags.Ephemeral });
+                    }
+                    scopeDescription = `channel ${channel.toString()}`;
+                    targetChannels.push(channel);
+                }
+
+                if (targetChannels.length === 0) {
+                    return interaction.editReply({ content: `No applicable channels found for scope: ${scopeDescription}.`, flags: MessageFlags.Ephemeral });
+                }
+
+                // --- Process Channels --- 
+                let renamedCount = 0;
+                let skippedCount = 0;
+                let failedCount = 0;
+
+                const actionText = isUndo ? "Removing first character from" : `Applying divider "${dividerSymbol}" to`;
+                await interaction.editReply({ content: `${actionText} ${targetChannels.length} channel(s) in ${scopeDescription}... (This may take time)`, flags: MessageFlags.Ephemeral });
+
+                for (const channel of targetChannels) {
+                    try {
+                        let newName;
+
+                        if (isUndo) {
+                            if (channel.name.length <= 1) {
+                                skippedCount++;
+                                continue;
+                            }
+                            newName = channel.name.substring(1);
+                        } else {
+                            if (channel.name.startsWith(dividerSymbol)) {
+                                skippedCount++;
+                                continue;
+                            }
+                            newName = dividerSymbol + channel.name;
+                            if (newName.length > 100) {
+                                failedCount++;
+                                continue;
+                            }
+                        }
+
+                        await channel.edit({ name: newName }, `Divider command by ${interaction.user.tag}`);
+                        renamedCount++;
+                        await wait(1100);
+                    } catch (error) {
+                        console.error(`Failed to rename channel ${channel.name} (${channel.id}):`, error);
+                        failedCount++;
+                    }
+                }
+
+                // --- Final Reply --- 
+                let finalMessage = `${isUndo ? "Undo" : "Divider"} process finished for ${scopeDescription}.\n- Renamed: ${renamedCount}\n- Skipped${!isUndo ? " (Already Prefixed)" : ""}: ${skippedCount}\n- Failed/Errors: ${failedCount}`;
+                await interaction.editReply({ content: finalMessage, flags: MessageFlags.Ephemeral });
+
+            } catch (error) {
+                console.error(`Error in divider command (${subcommand}):`, error);
+                await interaction.editReply({ content: 'An unexpected error occurred processing the command.', flags: MessageFlags.Ephemeral }).catch(console.error);
             }
         }
     },

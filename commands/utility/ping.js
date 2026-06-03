@@ -4,7 +4,7 @@ module.exports = {
     category: 'utility',
     data: new SlashCommandBuilder()
         .setName('ping')
-        .setDescription('Replies with Pong!'),
+        .setDescription('replies with pong'),
     async execute(interaction) {
         await interaction.reply({ content: 'Pong!', flags: MessageFlags.Ephemeral });
     },

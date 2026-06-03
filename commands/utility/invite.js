@@ -10,11 +10,11 @@ module.exports = {
     category: "utility",
     data: new SlashCommandBuilder()
         .setName("invite")
-        .setDescription("Get invite links for bots.")
+        .setDescription("get invite links for bots")
         .addBooleanOption((option) =>
             option
                 .setName("self")
-                .setDescription("Show invite for this bot only?")
+                .setDescription("show invite for this bot only")
                 .setRequired(true),
         ),
 
