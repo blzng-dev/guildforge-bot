@@ -17,10 +17,18 @@ Manage your server's channel structure effectively.
 
 -   **/channel create**
     -   Creates a new channel with specific types (Text, Voice, Forum, etc.) and optional parent categories.
--   **/channel clone channel**
-    -   Clones a specific channel from a source server to a target server, including permission overwrites.
--   **/channel clone category**
-    -   Clones an entire category and all its children channels from one server to another.
+### 🔄 Server Migration (`/clone`)
+
+A powerful toolset for cloning server structure, channels, and roles. Can be used within the same server or across different servers.
+
+-   **/clone channel**
+    -   Clones a specific text/voice channel.
+-   **/clone forum**
+    -   Clones a forum channel, optionally cloning its tags and all posts (threads) within it.
+-   **/clone category**
+    -   Clones an entire category and all its channels. Features an interactive Pause/Resume/Cancel progress tracker.
+-   **/clone server**
+    -   Clones all channels and categories from one server to another. Optionally clones roles and remaps channel-specific permissions perfectly to the new server. Features an interactive progress tracker.
 -   **/channel preset**
     -   Instantly generates a set of channels based on templates (e.g., "General Server Setup").
 -   **/channel manage**

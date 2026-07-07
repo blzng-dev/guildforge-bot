@@ -107,10 +107,20 @@ client.on(Events.InteractionCreate, async (interaction) => {
         await interaction.respond(filtered.slice(0, 25)).catch(console.error);
     }
 
-    // // Add other autocomplete handlers here
-    // else if (interaction.commandName === 'another_command') {
-    //     // ...
-    // }
+    // --- Emoji Autocomplete ---
+    else if (
+        interaction.commandName === "emoji" &&
+        interaction.options.getFocused(true).name === "emoji"
+    ) {
+        const focusedValue = interaction.options.getFocused();
+        const emojis = interaction.guild.emojis.cache;
+        const filtered = emojis
+            .filter((emoji) =>
+                emoji.name.toLowerCase().includes(focusedValue.toLowerCase())
+            )
+            .map((emoji) => ({ name: emoji.name, value: emoji.toString() }));
+        await interaction.respond(filtered.slice(0, 25)).catch(console.error);
+    }
 });
 
 // --- REMOVED Regular Command Execution Handler ---
