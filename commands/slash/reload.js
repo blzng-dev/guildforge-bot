@@ -1,8 +1,9 @@
 const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const path = require('path');
+const { getMessage } = require('../../utils/messages');
 
 module.exports = {
-    category: 'utility',
+    category: 'slash',
     data: new SlashCommandBuilder()
         .setName('reload')
         .setDescription('reloads a command')
@@ -15,7 +16,7 @@ module.exports = {
         const command = interaction.client.commands.get(commandName);
 
         if (!command) {
-            return interaction.reply({ content: `There is no command with the name \`/${commandName}\`!`, flags: MessageFlags.Ephemeral });
+            return interaction.reply({ content: getMessage('reload.error_not_found', { commandName }), flags: MessageFlags.Ephemeral });
         }
 
         try {
@@ -29,10 +30,10 @@ module.exports = {
             const newCommand = require(commandPath);
             interaction.client.commands.set(newCommand.data.name, newCommand);
 
-            await interaction.reply({ content: `Command \`/${newCommand.data.name}\` was successfully reloaded! 🔄`, flags: MessageFlags.Ephemeral });
+            await interaction.reply({ content: getMessage('reload.success', { commandName: newCommand.data.name }), flags: MessageFlags.Ephemeral });
         } catch (error) {
             console.error(error);
-            await interaction.reply({ content: `Error reloading \`/${newCommand.data.name}\`\n\`${error.message}\``, flags: MessageFlags.Ephemeral });
+            await interaction.reply({ content: getMessage('reload.error_failed', { commandName: commandName, error: error.message }), flags: MessageFlags.Ephemeral });
         }
     },
 };

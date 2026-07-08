@@ -7,6 +7,7 @@ const {
     MessageFlags,
     EmbedBuilder
 } = require('discord.js');
+const { getMessage } = require('../../utils/messages');
 
 const parseEmoji = (emojiString) => {
     // Regex to match custom emojis <a:name:id> or <:name:id>
@@ -24,7 +25,7 @@ const parseEmoji = (emojiString) => {
 };
 
 module.exports = {
-    category: 'utility',
+    category: 'slash',
     data: new SlashCommandBuilder()
         .setName('emoji')
         .setDescription('Manage server emojis')
@@ -161,7 +162,7 @@ async function handleAdd(interaction) {
     if (inputLink) sources.push({ type: 'link', value: inputLink });
 
     if (sources.length === 0) {
-        return interaction.reply({ content: 'You must provide at least one source (emoji, attachment, or link).', flags: MessageFlags.Ephemeral });
+        return interaction.reply({ content: getMessage('emoji.add.error_no_source'), flags: MessageFlags.Ephemeral });
     }
 
     if (sources.length > 1) {
@@ -182,7 +183,7 @@ async function handleAdd(interaction) {
         );
 
         const response = await interaction.reply({ 
-            content: 'You provided multiple image sources. Which one would you like to use?', 
+            content: getMessage('emoji.add.prompt_multiple_sources'), 
             components: [row],
             flags: MessageFlags.Ephemeral 
         });
@@ -194,17 +195,17 @@ async function handleAdd(interaction) {
             });
 
             if (confirmation.customId === 'cancel_emoji') {
-                return confirmation.update({ content: 'Action cancelled.', components: [] });
+                return confirmation.update({ content: getMessage('emoji.add.action_cancelled'), components: [] });
             }
 
             const selectedType = confirmation.customId.replace('use_', '');
             const selectedSource = sources.find(s => s.type === selectedType);
             
-            await confirmation.update({ content: `Processing ${selectedType}...`, components: [] });
+            await confirmation.update({ content: getMessage('emoji.add.processing', { type: selectedType }), components: [] });
             await processAddEmoji(interaction, selectedSource, inputName);
 
         } catch (e) {
-            await interaction.editReply({ content: 'Confirmation timed out.', components: [] });
+            await interaction.editReply({ content: getMessage('emoji.add.error_timeout'), components: [] });
         }
     } else {
         await interaction.deferReply();
@@ -219,7 +220,7 @@ async function processAddEmoji(interaction, source, providedName) {
     if (source.type === 'emoji') {
         const parsed = parseEmoji(source.value);
         if (!parsed) {
-            const msg = 'Invalid emoji format. Please provide a custom server emoji (like `<:name:id>`).';
+            const msg = getMessage('emoji.add.error_invalid_format');
             return interaction.editReply({ content: msg });
         }
         url = parsed.url;
@@ -232,17 +233,17 @@ async function processAddEmoji(interaction, source, providedName) {
 
     try {
         const createdEmoji = await interaction.guild.emojis.create({ attachment: url, name: emojiName });
-        const successMsg = `Successfully added emoji ${createdEmoji}!`;
+        const successMsg = getMessage('emoji.add.success', { emoji: createdEmoji.toString() });
         await interaction.editReply({ content: successMsg });
     } catch (error) {
         console.error('Error creating emoji:', error);
-        let errorMsg = 'Failed to add emoji due to an unknown error.';
+        let errorMsg = getMessage('emoji.add.error_unknown');
         if (error.code === 30008) {
-            errorMsg = 'Failed to add emoji: The server has reached the maximum number of emojis in this category.';
+            errorMsg = getMessage('emoji.add.error_slots_full');
         } else if (error.code === 50035 && error.message && error.message.includes('larger than')) {
-            errorMsg = 'Failed to add emoji: The file size is too large (max 256KB).';
+            errorMsg = getMessage('emoji.add.error_too_large');
         } else if (error.code === 50035) {
-            errorMsg = 'Failed to add emoji: Invalid image, format, or name.';
+            errorMsg = getMessage('emoji.add.error_invalid_image');
         }
         await interaction.editReply({ content: errorMsg });
     }
@@ -261,7 +262,7 @@ async function handleList(interaction) {
     }
     
     if (emojis.size === 0) {
-        return interaction.editReply('No emojis found matching your filter.');
+        return interaction.editReply(getMessage('emoji.list.error_none_found'));
     }
     
     let listText = emojis.map(e => `${e.toString()} - ${e.name}`).join('\n');
@@ -280,12 +281,12 @@ async function handleList(interaction) {
         }
         if (currentMsg) messages.push(currentMsg);
         
-        await interaction.editReply(`**Emoji List (${emojis.size}) [1/${messages.length}]:**\n${messages[0]}`);
+        await interaction.editReply(getMessage('emoji.list.title_paginated', { count: emojis.size, current: 1, total: messages.length, content: messages[0] }));
         for (let i = 1; i < messages.length; i++) {
-            await interaction.followUp(`**[${i + 1}/${messages.length}]:**\n${messages[i]}`);
+            await interaction.followUp(getMessage('emoji.list.title_paginated', { count: emojis.size, current: i + 1, total: messages.length, content: messages[i] }));
         }
     } else {
-        await interaction.editReply(`**Emoji List (${emojis.size}):**\n${listText}`);
+        await interaction.editReply(getMessage('emoji.list.title_full', { count: emojis.size, content: listText }));
     }
 }
 
@@ -295,21 +296,21 @@ async function handleDelete(interaction) {
     const parsed = parseEmoji(inputEmoji);
 
     if (!parsed) {
-        return interaction.editReply('Invalid emoji format. Please provide a custom emoji from this server.');
+        return interaction.editReply(getMessage('emoji.delete.error_invalid_format'));
     }
 
     const emojiToDel = interaction.guild.emojis.cache.get(parsed.id);
 
     if (!emojiToDel) {
-        return interaction.editReply(`The emoji \`${parsed.name}\` was not found in this server.`);
+        return interaction.editReply(getMessage('emoji.delete.error_not_found', { name: parsed.name }));
     }
 
     try {
         await emojiToDel.delete();
-        await interaction.editReply(`Successfully deleted emoji: \`${parsed.name}\``);
+        await interaction.editReply(getMessage('emoji.delete.success', { name: parsed.name }));
     } catch (error) {
         console.error('Error deleting emoji:', error);
-        await interaction.editReply(`Failed to delete emoji \`${parsed.name}\`. It might belong to Discord or a built-in integration.`);
+        await interaction.editReply(getMessage('emoji.delete.error_failed', { name: parsed.name }));
     }
 }
 
@@ -319,17 +320,17 @@ async function handleRename(interaction) {
     const newName = interaction.options.getString('new_name');
     
     const parsed = parseEmoji(inputEmoji);
-    if (!parsed) return interaction.editReply('Invalid emoji format. Please provide a custom emoji from this server.');
+    if (!parsed) return interaction.editReply(getMessage('emoji.rename.error_invalid_format'));
     
     const emojiToEdit = interaction.guild.emojis.cache.get(parsed.id);
-    if (!emojiToEdit) return interaction.editReply(`The emoji \`${parsed.name}\` was not found in this server.`);
+    if (!emojiToEdit) return interaction.editReply(getMessage('emoji.rename.error_not_found', { name: parsed.name }));
     
     try {
         await emojiToEdit.edit({ name: newName });
-        await interaction.editReply(`Successfully renamed emoji to \`${newName}\` ${emojiToEdit.toString()}`);
+        await interaction.editReply(getMessage('emoji.rename.success', { newName, emoji: emojiToEdit.toString() }));
     } catch (e) {
         console.error('Error renaming emoji:', e);
-        await interaction.editReply('Failed to rename emoji. It might belong to Discord or a built-in integration.');
+        await interaction.editReply(getMessage('emoji.rename.error_failed'));
     }
 }
 
@@ -338,10 +339,10 @@ async function handleInfo(interaction) {
     const inputEmoji = interaction.options.getString('emoji');
     
     const parsed = parseEmoji(inputEmoji);
-    if (!parsed) return interaction.editReply('Invalid emoji format. Please provide a custom emoji from this server.');
+    if (!parsed) return interaction.editReply(getMessage('emoji.info.error_invalid_format'));
     
     const emojiInfo = interaction.guild.emojis.cache.get(parsed.id);
-    if (!emojiInfo) return interaction.editReply(`The emoji \`${parsed.name}\` was not found in this server.`);
+    if (!emojiInfo) return interaction.editReply(getMessage('emoji.info.error_not_found', { name: parsed.name }));
     
     const embed = new EmbedBuilder()
         .setTitle(`Emoji Info: ${emojiInfo.name}`)
@@ -365,7 +366,7 @@ async function handleBulkAdd(interaction) {
     const matches = [...inputEmojis.matchAll(regex)];
 
     if (matches.length === 0) {
-        return interaction.editReply('No valid custom emojis were found in your input. Please make sure you are using actual server custom emojis.');
+        return interaction.editReply(getMessage('emoji.bulk.add.error_no_valid'));
     }
 
     const results = {
@@ -395,13 +396,15 @@ async function handleBulkAdd(interaction) {
         await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
-    let replyMessage = `**Bulk Emoji Add Results:**\n`;
+    let successList = '';
+    let failedList = '';
     if (results.success.length > 0) {
-        replyMessage += `✅ Added (${results.success.length}): ${results.success.join(' ')}\n`;
+        successList = `✅ Added (${results.success.length}): ${results.success.join(' ')}\n`;
     }
     if (results.failed.length > 0) {
-        replyMessage += `❌ Failed (${results.failed.length}): ${results.failed.join(', ')}\n`;
+        failedList = `❌ Failed (${results.failed.length}): ${results.failed.join(', ')}\n`;
     }
+    let replyMessage = getMessage('emoji.bulk.add.results', { successList, failedList });
 
     if (replyMessage.length > 2000) {
         replyMessage = replyMessage.substring(0, 1995) + '...';
@@ -418,7 +421,7 @@ async function handleBulkDelete(interaction) {
     const matches = [...inputEmojis.matchAll(regex)];
 
     if (matches.length === 0) {
-        return interaction.editReply('No valid custom emojis were found in your input. Please make sure you are using actual server custom emojis.');
+        return interaction.editReply(getMessage('emoji.bulk.delete.error_no_valid'));
     }
 
     const results = {
@@ -448,13 +451,15 @@ async function handleBulkDelete(interaction) {
         await new Promise(resolve => setTimeout(resolve, 500));
     }
 
-    let replyMessage = `**Bulk Emoji Delete Results:**\n`;
+    let successList = '';
+    let failedList = '';
     if (results.success.length > 0) {
-        replyMessage += `✅ Deleted (${results.success.length}): ${results.success.join(', ')}\n`;
+        successList = `✅ Deleted (${results.success.length}): ${results.success.join(', ')}\n`;
     }
     if (results.failed.length > 0) {
-        replyMessage += `❌ Failed (${results.failed.length}): ${results.failed.join(', ')}\n`;
+        failedList = `❌ Failed (${results.failed.length}): ${results.failed.join(', ')}\n`;
     }
+    let replyMessage = getMessage('emoji.bulk.delete.results', { successList, failedList });
 
     if (replyMessage.length > 2000) {
         replyMessage = replyMessage.substring(0, 1995) + '...';

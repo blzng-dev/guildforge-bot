@@ -1,7 +1,8 @@
 const { ContextMenuCommandBuilder, ApplicationCommandType, PermissionFlagsBits } = require('discord.js');
+const { getMessage } = require('../../utils/messages');
 
 module.exports = {
-    category: 'utility',
+    category: 'context-menu',
     data: new ContextMenuCommandBuilder()
         .setName('Add Emoji')
         .setType(ApplicationCommandType.Message)
@@ -19,7 +20,7 @@ module.exports = {
         const matches = [...content.matchAll(regex)];
 
         if (matches.length === 0) {
-            return interaction.editReply('No custom emojis found in this message.');
+            return interaction.editReply(getMessage('add_emoji.error_none_found'));
         }
 
         const results = {
@@ -56,13 +57,15 @@ module.exports = {
             await new Promise(resolve => setTimeout(resolve, 1000));
         }
 
-        let replyMessage = `**Emoji Add Results:**\n`;
+        let successList = '';
+        let failedList = '';
         if (results.success.length > 0) {
-            replyMessage += `✅ Added (${results.success.length}): ${results.success.join(' ')}\n`;
+            successList = `✅ Added (${results.success.length}): ${results.success.join(' ')}\n`;
         }
         if (results.failed.length > 0) {
-            replyMessage += `❌ Failed (${results.failed.length}): ${results.failed.join(', ')}\n`;
+            failedList = `❌ Failed (${results.failed.length}): ${results.failed.join(', ')}\n`;
         }
+        let replyMessage = getMessage('add_emoji.results', { successList, failedList });
 
         if (replyMessage.length > 2000) {
             replyMessage = replyMessage.substring(0, 1995) + '...';

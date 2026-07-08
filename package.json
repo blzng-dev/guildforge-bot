@@ -10,6 +10,10 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@babel/core": "^8.0.1",
+    "@babel/generator": "^8.0.0",
+    "@babel/parser": "^8.0.0",
+    "@babel/traverse": "^8.0.0",
     "discord.js": "^14.18.0",
     "dotenv": "^17.2.3"
   }

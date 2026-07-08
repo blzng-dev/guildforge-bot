@@ -4,6 +4,7 @@ const {
     PermissionsBitField,
     MessageFlags,
 } = require("discord.js");
+const { getMessage } = require("../../utils/messages");
 const { InteractiveProgress } = require("../../utils/progress.js");
 const { logAction } = require("../../utils/logger.js");
 
@@ -131,7 +132,7 @@ async function cloneForumChannel(sourceChannel, targetGuild, targetParentId, new
                     await progressManager.update(false);
                 }
             }
-            await progressManager.finish(`Cloned posts in **${newChannel.name}**.`);
+            await progressManager.finish(getMessage('clone.forum.progress_finish', { name: newChannel.name }));
         }
     }
 
@@ -202,16 +203,16 @@ module.exports = {
             targetGuild = await interaction.client.guilds.fetch(targetGuildId).catch(() => null);
             
             if (!targetGuild) {
-                return interaction.editReply({ content: `❌ **Error:** Could not find the target server with ID \`${targetGuildId}\`. Make sure the bot is in that server.` });
+                return interaction.editReply({ content: getMessage('clone.error_target_not_found', { targetGuildId }) });
             }
 
             const sourceMember = await sourceGuild.members.fetch(interaction.user.id).catch(() => null);
             if (!sourceMember || !sourceMember.permissions.has(PermissionsBitField.Flags.Administrator)) {
-                return interaction.editReply({ content: `❌ **Error:** You must have the \`Administrator\` permission in the **source** server to perform cross-server cloning.` });
+                return interaction.editReply({ content: getMessage('clone.error_source_admin') });
             }
             const targetMember = await targetGuild.members.fetch(interaction.user.id).catch(() => null);
             if (!targetMember || !targetMember.permissions.has(PermissionsBitField.Flags.Administrator)) {
-                return interaction.editReply({ content: `❌ **Error:** You must have the \`Administrator\` permission in the **target** server to perform cross-server cloning.` });
+                return interaction.editReply({ content: getMessage('clone.error_target_admin') });
             }
         }
 
@@ -225,11 +226,11 @@ module.exports = {
 
             const sourceChannel = await sourceGuild.channels.fetch(channelId).catch(() => null);
             if (!sourceChannel || sourceChannel.type === ChannelType.GuildForum || sourceChannel.type === ChannelType.GuildCategory) {
-                return interaction.editReply({ content: `❌ Invalid channel ID. Ensure it's a valid non-forum channel.` });
+                return interaction.editReply({ content: getMessage('clone.channel.error_invalid') });
             }
             
             await cloneSingleChannel(sourceChannel, targetGuild, targetCatId, newName, copyPerms, isCrossServer, roleMap);
-            await interaction.editReply({ content: `✅ Cloned channel **${newName || sourceChannel.name}** successfully.`});
+            await interaction.editReply({ content: getMessage('clone.channel.success', { name: newName || sourceChannel.name }) });
             await logAction(interaction.guild, `**Cloned Channel**\nCloned ${sourceChannel.name} to ${targetGuild.name} by ${interaction.user.tag}`);
         } 
         else if (subcommand === "forum") {
@@ -243,13 +244,13 @@ module.exports = {
 
             const sourceChannel = await sourceGuild.channels.fetch(channelId).catch(() => null);
             if (!sourceChannel || sourceChannel.type !== ChannelType.GuildForum) {
-                return interaction.editReply({ content: `❌ Invalid channel ID. Ensure it's a valid forum channel.` });
+                return interaction.editReply({ content: getMessage('clone.forum.error_invalid') });
             }
 
             const progressManager = clonePosts ? new InteractiveProgress(interaction, 0, `Cloning Forum Posts: ${sourceChannel.name}`) : null;
             await cloneForumChannel(sourceChannel, targetGuild, targetCatId, newName, copyPerms, isCrossServer, copyTags, clonePosts, clonePostDesc, roleMap, progressManager);
             if (!clonePosts) {
-                await interaction.editReply({ content: `✅ Cloned forum **${newName || sourceChannel.name}** successfully.`});
+                await interaction.editReply({ content: getMessage('clone.forum.success', { name: newName || sourceChannel.name }) });
             }
             await logAction(interaction.guild, `**Cloned Forum**\nCloned ${sourceChannel.name} to ${targetGuild.name} by ${interaction.user.tag}`);
         }
@@ -262,7 +263,7 @@ module.exports = {
 
             const sourceCategory = await sourceGuild.channels.fetch(categoryId).catch(() => null);
             if (!sourceCategory || sourceCategory.type !== ChannelType.GuildCategory) {
-                return interaction.editReply({ content: `❌ Invalid category ID. Ensure it's a valid category.` });
+                return interaction.editReply({ content: getMessage('clone.category.error_invalid') });
             }
 
             const channelsToClone = sourceGuild.channels.cache
@@ -299,7 +300,7 @@ module.exports = {
                     await progressManager.update(false);
                 }
             }
-            await progressManager.finish(`Successfully cloned category into **${newCategory.name}**.`);
+            await progressManager.finish(getMessage('clone.category.progress_finish', { name: newCategory.name }));
             await logAction(interaction.guild, `**Cloned Category**\nCloned ${sourceCategory.name} to ${targetGuild.name} by ${interaction.user.tag}`);
         }
         else if (subcommand === "server") {
@@ -309,14 +310,14 @@ module.exports = {
 
             // We must have target_server_id for server cloning.
             if (!isCrossServer) {
-                return interaction.editReply({ content: `❌ **Error:** You must specify a different target server for server cloning.`});
+                return interaction.editReply({ content: getMessage('clone.server.error_cross_server') });
             }
 
             if (cloneRoles) {
                 const roles = sourceGuild.roles.cache.sort((a, b) => b.position - a.position);
                 roleMap.set(sourceGuild.roles.everyone.id, targetGuild.roles.everyone.id);
                 
-                await interaction.editReply({ content: `🔄 Cloning ${roles.size} roles...` });
+                await interaction.editReply({ content: getMessage('clone.server.cloning_roles', { count: roles.size }) });
                 
                 for (const role of roles.values()) {
                     if (role.id === sourceGuild.roles.everyone.id) continue;
@@ -393,7 +394,7 @@ module.exports = {
                 }
             }
 
-            await progressManager.finish(`Successfully cloned server ${sourceGuild.name} to ${targetGuild.name}.`);
+            await progressManager.finish(getMessage('clone.server.progress_finish', { sourceName: sourceGuild.name, targetName: targetGuild.name }));
             await logAction(interaction.guild, `**Cloned Server**\nCloned ${sourceGuild.name} to ${targetGuild.name} by ${interaction.user.tag}`);
         }
     }

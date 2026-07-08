@@ -7,9 +7,10 @@ const {
     Routes,
 } = require("discord.js");
 const { REST } = require("@discordjs/rest");
+const { getMessage } = require("../../utils/messages");
 
 module.exports = {
-    category: "utility",
+    category: 'slash',
     data: new SlashCommandBuilder()
         .setName("server")
         .setDescription("manage server-level settings")
@@ -89,8 +90,7 @@ module.exports = {
             )
         ) {
             return interaction.reply({
-                content:
-                    "You do not have permission to manage server settings.",
+                content: getMessage('server.error_no_permission'),
                 flags: MessageFlags.Ephemeral,
             });
         }
@@ -109,10 +109,10 @@ module.exports = {
                 if (subcommand === "set") {
                     const channel = interaction.options.getChannel("channel");
                     await setSetting(guild.id, "auditLogChannel", channel.id);
-                    await interaction.editReply(`Audit log channel has been set to ${channel}.`);
+                    await interaction.editReply(getMessage('server.auditlog.set', { channelId: channel.id }));
                 } else if (subcommand === "disable") {
                     await setSetting(guild.id, "auditLogChannel", null);
-                    await interaction.editReply("Audit logging has been disabled.");
+                    await interaction.editReply(getMessage('server.auditlog.disable'));
                 }
                 return;
             }
@@ -123,7 +123,7 @@ module.exports = {
                     body: { verification_level: level }
                 });
                 const levelNames = ["None", "Low", "Medium", "High", "Highest"];
-                await interaction.editReply(`Successfully set the server verification level to **${levelNames[level]}**.`);
+                await interaction.editReply(getMessage('server.verification.success', { levelName: levelNames[level] }));
                 return;
             } else if (subcommand === "community") {
                 const enableCommunity = interaction.options.getBoolean("enabled");
@@ -138,7 +138,7 @@ module.exports = {
                     if (isAlreadyEnabled) {
                         if (!rulesChannel && !updatesChannel) {
                             return interaction.editReply({
-                                content: "Community features are already enabled for this server.",
+                                content: getMessage('server.community.error_already_enabled'),
                             });
                         }
 
@@ -157,12 +157,12 @@ module.exports = {
                             await rest.patch(Routes.guild(guild.id), { body });
 
                             return interaction.editReply({
-                                content: `Community settings updated: ${responseParts.join(" and ")}.`,
+                                content: getMessage('server.community.success_updated', { parts: responseParts.join(" and ") }),
                             });
                         } catch (err) {
                             console.error("Error updating community channels:", err);
                             return interaction.editReply({
-                                content: `Failed to update community channels: ${err.message || "Unknown error"}`,
+                                content: getMessage('server.community.error_update_failed', { error: err.message || "Unknown error" }),
                             });
                         }
                     }
@@ -188,7 +188,7 @@ module.exports = {
                         } catch (err) {
                             console.error("Error creating rules channel:", err);
                             return interaction.editReply({
-                                content: "Failed to create rules channel. Please provide an existing channel or check bot permissions.",
+                                content: getMessage('server.community.error_create_rules'),
                             });
                         }
                     }
@@ -214,7 +214,7 @@ module.exports = {
                         } catch (err) {
                             console.error("Error creating updates channel:", err);
                             return interaction.editReply({
-                                content: "Failed to create community updates channel. Please provide an existing channel or check bot permissions.",
+                                content: getMessage('server.community.error_create_updates'),
                             });
                         }
                     }
@@ -236,13 +236,11 @@ module.exports = {
 
                         console.log("Community enabled response:", response);
 
-                        let replyContent = `Community features have been enabled! Rules channel set to ${rulesChannel} and updates channel set to ${updatesChannel}.\n` +
-                            `*Note: The server verification level was adjusted to at least Low and explicit content filter to All Members to meet requirements.*`;
+                        let replyContent = getMessage('server.community.success_enabled', { rulesId: rulesChannel.id, updatesId: updatesChannel.id, createdChannelsInfo: '' });
 
                         // Add info about created channels
                         if (createdChannels.length > 0) {
-                            replyContent += `\n\nThe following channels were automatically created: ${createdChannels.join(", ")}.`;
-                            replyContent += `\nYou may want to customize these channels with appropriate content.`;
+                            replyContent = getMessage('server.community.success_enabled', { rulesId: rulesChannel.id, updatesId: updatesChannel.id, createdChannelsInfo: getMessage('server.community.created_channels_info', { channels: createdChannels.join(", ") }) });
                         }
 
                         await interaction.editReply({
@@ -251,7 +249,7 @@ module.exports = {
                     } catch (err) {
                         console.error("Error enabling community:", err);
                         return interaction.editReply({
-                            content: `Failed to enable community: ${err.message || "Unknown error"}`,
+                            content: getMessage('server.community.error_enable_failed', { error: err.message || "Unknown error" }),
                         });
                     }
                 } else {
@@ -268,36 +266,31 @@ module.exports = {
                         console.log("Community disabled response:", response);
 
                         await interaction.editReply({
-                            content:
-                                "Community features have been disabled for this server.",
+                            content: getMessage('server.community.success_disabled'),
                         });
                     } catch (err) {
                         console.error("Error disabling community:", err);
                         return interaction.editReply({
-                            content: `Failed to disable community features: ${err.message || "Unknown error"
-                                }`,
+                            content: getMessage('server.community.error_disable_failed', { error: err.message || "Unknown error" }),
                         });
                     }
                 }
             }
         } catch (error) {
             console.error("Error updating community settings:", error);
-            let errorMessage = "Failed to update community settings.";
+            let errorMessage = getMessage('server.error_generic');
 
             // Provide more specific error messages
             if (error.code === 50013) {
-                errorMessage +=
-                    " The bot lacks necessary permissions to manage server settings.";
+                errorMessage += getMessage('server.error_permissions');
             } else if (error.code === 50035) {
-                errorMessage +=
-                    " Invalid form body. Discord API validation failed.";
+                errorMessage += getMessage('server.error_validation');
                 // Add detailed error information from the rawError if available
                 if (error.rawError && error.rawError.errors) {
-                    errorMessage +=
-                        " Details: " + JSON.stringify(error.rawError.errors);
+                    errorMessage += getMessage('server.error_details', { details: JSON.stringify(error.rawError.errors) });
                 }
             } else if (error.message) {
-                errorMessage += ` Error: ${error.message}`;
+                errorMessage += getMessage('server.error_message', { error: error.message });
             }
 
             // Make sure we're responding only if we haven't already

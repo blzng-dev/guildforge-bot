@@ -1,0 +1,297 @@
+{
+    "ping": {
+        "success": ":status: Pong!"
+    },
+    "reload": {
+        "error_not_found": ":x_: There is no command with the name `/{commandName}`!",
+        "success": ":sync: Command `/{commandName}` was successfully reloaded! ",
+        "error_failed": ":unknown: Error reloading `/{commandName}`\n`{error}`"
+    },
+    "invite": {
+        "self": ":invite: Click the button below to invite me to your server:",
+        "others": "## Bot Invite Links\nsome useful free bot invite links\n- **[Carl](<https://discord.com/oauth2/authorize?&client_id=235148962103951360&scope=applications.commands+bot&permissions=2088234230&response_type=code&redirect_uri=https://carl.gg/api/server_auth>)** - logging, welcome, notifications\n- **[Sapphire](<https://discord.com/oauth2/authorize?scope=bot+applications.commands&response_type=code&redirect_uri=https://sapph.xyz/dashboard&permissions=1101596716286&client_id=678344927997853742&guild_id=1355771301259771965>)** - menus, logging, welcome\n- **[Statbot](<https://discord.com/oauth2/authorize?client_id=491769129318088714&scope=bot+applications.commands&permissions=275147508760>)** - message tracking\n- **[Activity Rank](<https://discord.com/oauth2/authorize?client_id=534589798267224065&permissions=294172224721&scope=bot%20applications.commands>)** - levelling\n- **[Formify](<https://ptb.discord.com/oauth2/authorize?client_id=945331235977310280&permissions=395405740048&scope=applications.commands+bot>)** - forms, ticketing\n- **[Discohook](<https://discord.com/oauth2/authorize?client_id=792842038332358656&permissions=805694528&scope=bot%20applications.commands>)** - menus\n- **[X Follow-Up](<https://discord.com/oauth2/authorize?client_id=1174332637322674186&permissions=2147862592&scope=bot%20applications.commands>)** - twitter notifications\n- **[Fredboat](<https://discord.com/oauth2/authorize?client_id=184405253028970496&scope=bot+identify&redirect_uri=https%3A%2F%2Ffredboat.com%2Fcallback%2Fmusic&response_type=code>)** - music\n- **[Tickets](<https://discord.com/oauth2/authorize?client_id=1325579039888511056&scope=bot+applications.commands&permissions=395942816984>)** - ticketing"
+    },
+    "add_emoji": {
+        "error_none_found": ":x_: No custom emojis found in this message.",
+        "results": "**Emoji Add Results:**\n{successList}{failedList}"
+    },
+    "emoji": {
+        "add": {
+            "error_no_source": "You must provide at least one source (emoji, attachment, or link).",
+            "prompt_multiple_sources": "You provided multiple image sources. Which one would you like to use?",
+            "action_cancelled": ":x_: Action cancelled.",
+            "processing": "Processing {type}...",
+            "error_timeout": "Confirmation timed out.",
+            "error_invalid_format": "Invalid emoji format. Please provide a custom server emoji (like `<:name:id>`).",
+            "success": ":checkmark: Successfully added emoji {emoji}!",
+            "error_unknown": "Failed to add emoji due to an unknown error.",
+            "error_slots_full": "Failed to add emoji: The server has reached the maximum number of emojis in this category.",
+            "error_too_large": "Failed to add emoji: The file size is too large (max 256KB).",
+            "error_invalid_image": "Failed to add emoji: Invalid image, format, or name."
+        },
+        "list": {
+            "error_none_found": "No emojis found matching your filter.",
+            "title_paginated": "**Emoji List ({count}) [{current}/{total}]:**\n{content}",
+            "title_full": "**Emoji List ({count}):**\n{content}"
+        },
+        "delete": {
+            "error_invalid_format": ":x_: Invalid emoji format. Please provide a custom emoji from this server.",
+            "error_not_found": ":search: The emoji `{name}` was not found in this server.",
+            "success": ":checkmark: Successfully deleted emoji: `{name}`",
+            "error_failed": ":unknown: Failed to delete emoji `{name}`. It might belong to Discord or a built-in integration."
+        },
+        "rename": {
+            "error_invalid_format": ":x_: Invalid emoji format. Please provide a custom emoji from this server.",
+            "error_not_found": "The emoji `{name}` was not found in this server.",
+            "success": "Successfully renamed emoji to `{newName}` {emoji}",
+            "error_failed": ":x_: Failed to rename emoji. It might belong to Discord or a built-in integration."
+        },
+        "info": {
+            "error_invalid_format": ":x_: Invalid emoji format. Please provide a custom emoji from this server.",
+            "error_not_found": "The emoji `{name}` was not found in this server."
+        },
+        "bulk": {
+            "add": {
+                "error_no_valid": "No valid custom emojis were found in your input. Please make sure you are using actual server custom emojis.",
+                "results": "**Bulk Emoji Add Results:**\n{successList}{failedList}"
+            },
+            "delete": {
+                "error_no_valid": "No valid custom emojis were found in your input. Please make sure you are using actual server custom emojis.",
+                "results": "**Bulk Emoji Delete Results:**\n{successList}{failedList}"
+            }
+        }
+    },
+    "clone": {
+        "error_target_not_found": ":x_: **Error:** Could not find the target server with ID `{targetGuildId}`. Make sure the bot is in that server.",
+        "error_source_admin": ":x_: **Error:** You must have the `Administrator` permission in the **source** server to perform cross-server cloning.",
+        "error_target_admin": ":x_: **Error:** You must have the `Administrator` permission in the **target** server to perform cross-server cloning.",
+        "channel": {
+            "error_invalid": ":x_: Invalid channel ID. Ensure it's a valid non-forum channel.",
+            "success": ":checkmark: Cloned channel **{name}** successfully."
+        },
+        "forum": {
+            "error_invalid": ":x_: Invalid channel ID. Ensure it's a valid forum channel.",
+            "success": ":checkmark: Cloned forum **{name}** successfully.",
+            "progress_finish": ":followed: Cloned posts in **{name}**."
+        },
+        "category": {
+            "error_invalid": ":x_: Invalid category ID. Ensure it's a valid category.",
+            "progress_finish": ":checkmark: Successfully cloned category into **{name}**."
+        },
+        "server": {
+            "error_cross_server": ":x_: **Error:** You must specify a different target server for server cloning.",
+            "cloning_roles": ":sync: Cloning {count} roles...",
+            "progress_finish": ":checkmark: Successfully cloned server {sourceName} to {targetName}."
+        }
+    },
+    "server": {
+        "error_no_permission": ":x_: You do not have permission to manage server settings.",
+        "auditlog": {
+            "set": ":checkmark: Audit log channel has been set to <#{channelId}>.",
+            "disable": "Audit logging has been disabled."
+        },
+        "verification": {
+            "success": "Successfully set the server verification level to **{levelName}**."
+        },
+        "community": {
+            "error_already_enabled": "Community features are already enabled for this server.",
+            "success_updated": "Community settings updated: {parts}.",
+            "error_update_failed": "Failed to update community channels: {error}",
+            "error_create_rules": "Failed to create rules channel. Please provide an existing channel or check bot permissions.",
+            "error_create_updates": "Failed to create community updates channel. Please provide an existing channel or check bot permissions.",
+            "success_enabled": "Community features have been enabled! Rules channel set to <#{rulesId}> and updates channel set to <#{updatesId}>.\\n*Note: The server verification level was adjusted to at least Low and explicit content filter to All Members to meet requirements.*{createdChannelsInfo}",
+            "created_channels_info": "\\n\\nThe following channels were automatically created: {channels}.\\nYou may want to customize these channels with appropriate content.",
+            "error_enable_failed": "Failed to enable community: {error}",
+            "success_disabled": "Community features have been disabled for this server.",
+            "error_disable_failed": "Failed to disable community features: {error}"
+        },
+        "error_generic": "Failed to update community settings.",
+        "error_permissions": " The bot lacks necessary permissions to manage server settings.",
+        "error_validation": " Invalid form body. Discord API validation failed.",
+        "error_details": " Details: {details}",
+        "error_message": " Error: {error}"
+    },
+    "events": {
+        "interactionCreate": {
+            "error": "There was an error while executing this command!"
+        }
+    },
+    "role": {
+        "error_no_permission": "you do not have permission to manage server roles.",
+        "create_bulk": {
+            "error_no_names": "No valid role names provided.",
+            "error_limit": "Please limit to 50 roles at a time.",
+            "success": "Successfully created {createdCount} roles.",
+            "failed": "\nFailed to create {failedCount} roles:\n{failedNames}"
+        },
+        "create": {
+            "error_invalid_color": "Invalid hex color format.",
+            "position_error_everyone": "\n*(Cannot position below @everyone)*",
+            "position_error_hierarchy_below": "\n*(Could not position below {roleName} due to hierarchy)*",
+            "position_success_below": "\n*(Positioned below {roleName})*",
+            "position_error_hierarchy_above": "\n*(Could not position above {roleName} due to hierarchy)*",
+            "position_success_above": "\n*(Positioned above {roleName})*",
+            "success": "Successfully created role: <@&{roleId}>{positionMessage}",
+            "error_unknown": "There was an error trying to create the role."
+        },
+        "preset": {
+            "error_invalid": "Invalid preset selected.",
+            "success": "Successfully created role <@&{roleId}> using the \"{presetName}\" preset.",
+            "error_unknown": "There was an error trying to create the preset role."
+        },
+        "list": {
+            "error_empty": "There are no roles in this server (besides @everyone).",
+            "success": "**Server Roles ({count}):**\n{roleString}",
+            "success_file": "There are too many roles ({count}) to display directly. Here is a list as a file:",
+            "error_unknown": "An error occurred while trying to list the roles."
+        },
+        "color": {
+            "error_read": "Error reading/parsing `colorRoles.json`. Make sure file exists & is valid JSON.",
+            "error_invalid_json": "`colorRoles.json` does not contain a valid JSON array.",
+            "results": "Color role creation finished.\n- Created: {createdCount}\n- Existed: {skippedCount}\n- Failed: {errorCount}"
+        },
+        "msg_1": "There are no roles in this server (besides @everyone).",
+        "msg_2": "Deleting {length} created roles...",
+        "msg_3": "Deletion finished. Deleted: {deletedCount}. Failed: {deleteErrorCount}.",
+        "msg_4": "Successfully scraped {length} roles. Here is the JSON file:",
+        "msg_5": "There was an error trying to scrape roles.",
+        "msg_6": "An error occurred while trying to get role info.",
+        "msg_7": "Please select the roles you want to export:",
+        "msg_8": "Selection timed out.",
+        "msg_9": "No roles selected or found to export.",
+        "msg_10": "Deleting roles...",
+        "msg_11": "Deletion finished. Deleted: {deletedCount}. Failed: {failedCount}.",
+        "msg_12": "Select the roles you want to delete:",
+        "msg_13": "Deleting selected roles...",
+        "msg_14": "Deletion finished. Deleted: {deletedCount}. Failed: {failedCount}.",
+        "msg_15": "An error occurred while trying to export roles.",
+        "msg_16": "Failed to read the attached file. Make sure it is valid JSON.",
+        "msg_17": "Invalid JSON format. Expected an object or array of objects.",
+        "msg_18": "Import finished.\\n- Roles Created: {createdCount}\\n- Roles Existing/Restored: {restoredCount}\\n- Role Assignments: {assignedCount}\\n- Skipped Members (not in guild): {skippedMembers}",
+        "msg_19": "An error occurred while processing the import. Make sure the JSON structure is correct.",
+        "msg_20": "Could not find user {tag} in this server.",
+        "msg_21": "I cannot manage the role {name} because it's higher than or equal to my highest role.",
+        "msg_22": "You cannot manage the role {name} because it's higher than or equal to your highest role.",
+        "msg_23": "Removed role <@&{id}> from {tag}.",
+        "msg_24": "Added role <@&{id}> to {tag}.",
+        "msg_25": "Failed to toggle role <@&{id}>. Check my permissions and role hierarchy.",
+        "msg_26": "I cannot manage the role {name} because it's higher than or equal to my highest role.",
+        "msg_27": "You cannot manage the role {name} because it's higher than or equal to your highest role.",
+        "msg_28": "Cannot modify the @everyone role with this command.",
+        "msg_29": "Invalid hex color format. Use format #RRGGBB (e.g., #FF0000 for red).",
+        "msg_30": "No changes specified for the role.",
+        "msg_31": "Successfully updated role <@&{id}> ({var2}).",
+        "msg_32": "An error occurred while modifying the role. Check my permissions and role hierarchy.",
+        "msg_33": "I cannot modify the role {name} because it's higher than or equal to my highest role.",
+        "msg_34": "You cannot modify the role {name} because it's higher than or equal to your highest role.",
+        "msg_35": "Cannot modify the @everyone role with this command.",
+        "msg_36": "Successfully cleared all permissions from the role <@&{id}>.",
+        "msg_37": "An error occurred while clearing permissions. Check my permissions and role hierarchy.",
+        "msg_38": "Select the roles you want to clear all permissions from:",
+        "msg_39": "No roles were selected.",
+        "msg_40": "Role selection timed out. No permissions were cleared.",
+        "msg_41": "An error occurred while setting up the role selection. Please try again.",
+        "msg_42": "To delete a range of roles, you must specify both `start_role` and `end_role`.",
+        "msg_43": "The start and end roles cannot be the same for range deletion.",
+        "msg_44": "No roles found between **{name}** and **{name}**.",
+        "msg_45": "Found {size} roles between boundaries, but none can be deleted.{params}",
+        "msg_46": "Deleting {length} roles...",
+        "msg_47": "I cannot delete the role {name} because it's higher than or equal to my highest role.",
+        "msg_48": "You cannot delete the role {name} because it's higher than or equal to your highest role.",
+        "msg_49": "Cannot delete the @everyone role.",
+        "msg_50": "Cannot delete the role \"{name}\" because it currently has {size} member(s).",
+        "msg_51": "Successfully deleted the role \"{roleName}\" (was <@&{roleId}>).",
+        "msg_52": "An error occurred while deleting the role. Check my permissions and role hierarchy.",
+        "msg_53": "I cannot manage one or both of these roles because they are higher than or equal to my highest role.",
+        "msg_54": "You cannot manage one or both of these roles because they are higher than or equal to your highest role.",
+        "msg_55": "The primary and secondary roles cannot be the same.",
+        "msg_56": "No members found with the role {secondaryRole}.",
+        "msg_57": "Found {memberCount} members with {secondaryRole}. Starting transfer to {primaryRole}...",
+        "msg_58": "An unexpected error occurred while processing the request.",
+        "msg_59": "Select the roles you want to delete:",
+        "msg_60": "No roles were selected.",
+        "msg_61": "You are about to delete {length} role(s):\\n{roleNames}\\n\\n⚠️ **This action cannot be undone!** Are you sure?",
+        "msg_62": "Role selection timed out. No roles were deleted.",
+        "msg_63": "Role deletion cancelled.",
+        "msg_64": "Deleting {length} roles... This may take a moment.",
+        "msg_65": "Confirmation timed out. No roles were deleted.",
+        "msg_66": "An error occurred while setting up the role deletion menu. Please try again.",
+        "msg_67": "No valid roles selected to move.",
+        "msg_68": "Cannot place roles relative to a pivot role higher than my highest role.",
+        "msg_69": "Cannot move role {name} because it is higher or equal to my highest role.",
+        "msg_70": "Calculating new role positions...",
+        "msg_71": "Pivot role not found.",
+        "msg_72": ":checkmark: Successfully moved {length} roles {positionOption} {name}.",
+        "msg_73": ":x_: Failed to reorder roles due to an error.",
+        "msg_74": "No roles found strictly between the specified range.",
+        "msg_75": "The following roles will be moved {positionOption} **{name}**:\\n{roleList}\\n\\nDo you want to proceed?",
+        "msg_76": "Reorder cancelled.",
+        "msg_77": "Confirmation timed out. Reorder cancelled.",
+        "msg_78": "Select the roles you want to move **{positionOption}** {name}:",
+        "msg_79": "You've selected {length} roles to move **{positionOption}** {name}. Confirm?",
+        "msg_80": "Selection timed out.",
+        "msg_81": "Role reorder cancelled.",
+        "msg_82": "Confirmation timed out."
+    },
+    "channel": {
+        "msg_1": "you do not have permission to manage server channels.",
+        "msg_2": "Selected category is invalid.",
+        "msg_3": "Invalid preset name: {presetName}.",
+        "msg_4": "Community features are not enabled. Attempting to enable first... (Requires rules & updates channels)",
+        "msg_5": "Failed to create prerequisite rules channel for community setup. Cannot proceed.",
+        "msg_6": "Failed to create prerequisite community updates channel for community setup. Cannot proceed.",
+        "msg_7": "Community features enabled. Preparing channel preview... (Rules: <#{id}>, Updates: <#{id}>)",
+        "msg_8": "Failed to enable community features: {var1}. Cannot proceed with preset.",
+        "msg_9": "\\`\\`\\`\\n{chunk}\\n\\`\\`\\`",
+        "msg_10": "Preset confirmation timed out. No channels were created.",
+        "msg_11": "An unexpected error occurred during preset creation.",
+        "msg_12": "Selected category (ID: {categoryId}) no longer exists or is not a category.",
+        "msg_13": "Successfully created {channelType} channel: <#{id}>",
+        "msg_14": "There was an error trying to create the channel.",
+        "msg_15": "Successfully renamed channel from \"{oldName}\" to \"{newName}\" (<#{id}>).",
+        "msg_16": "An error occurred while renaming the channel. Check my permissions.",
+        "msg_17": "Could not find {mentionableType} {mentionString} in this server.",
+        "msg_18": "No permission changes were specified.",
+        "msg_19": "Successfully updated permissions for {mentionableType} {mentionString} in channel <#{id}>.",
+        "msg_20": "An error occurred while updating permissions. Check channel hierarchy and bot permissions.",
+        "msg_21": "Select a role or user to configure permissions for in <#{id}>:",
+        "msg_22": "No selection was made. Command cancelled.",
+        "msg_23": "Selected role could not be found. Please try again.",
+        "msg_24": "Selected user could not be found. Please try again.",
+        "msg_25": "You can run this command:\\n\\`{commandSuggestion}\\`",
+        "msg_26": "Selection timed out. Command cancelled.",
+        "msg_27": "An error occurred while setting up the selection menu. Please try again.",
+        "msg_28": "Invalid category specified.",
+        "msg_29": "You need the Manage Channels permission to sync permissions.",
+        "msg_30": "I need both Manage Channels and Manage Roles permissions to sync permissions.",
+        "msg_31": "No channels found in this category to sync.",
+        "msg_32": "An error occurred while syncing permissions.",
+        "msg_33": "Deleting {size} channels from category {name}...",
+        "msg_34": "Successfully deleted all {deletedCount} channels from category {name}. Now deleting the category...",
+        "msg_35": "Cannot delete channel \"{name}\" because it contains messages.",
+        "msg_36": "An error occurred while deleting the channel. Check permissions.",
+        "msg_37": "An error occurred while processing the delete command. Check permissions.",
+        "msg_38": "Select the channels you want to delete:",
+        "msg_39": "No channels were selected.",
+        "msg_40": "You are about to delete {length} channel(s):\\n{channelNames}\\n⚠️ **This action cannot be undone!** Are you sure?",
+        "msg_41": "Channel selection timed out. No channels were deleted.",
+        "msg_42": "Channel deletion cancelled.",
+        "msg_43": "Deleting {length} channels... This may take a moment.",
+        "msg_44": "Confirmation timed out. No channels were deleted.",
+        "msg_45": "An error occurred while setting up the channel deletion menu. Please try again.",
+        "msg_46": "Successfully cleared all permission overwrites from <#{id}>.",
+        "msg_47": "An error occurred while clearing permission overwrites. Check my permissions.",
+        "msg_48": "Select the channels you want to clear all permission overwrites from:",
+        "msg_49": "No channels were selected.",
+        "msg_50": "Channel selection timed out. No permission overwrites were cleared.",
+        "msg_51": "An error occurred while setting up the channel selection. Please try again.",
+        "msg_52": "You must provide a symbol for the `custom_divider` option when selecting type Custom.",
+        "msg_53": "Invalid category selection (ID: {categoryId}). Please choose a valid category.",
+        "msg_54": "Cannot apply divider to channel type: {var1}.",
+        "msg_55": "No applicable channels found for scope: {scopeDescription}.",
+        "msg_56": "{actionText} {length} channel(s) in {scopeDescription}... (This may take time)",
+        "msg_57": "An unexpected error occurred processing the command.",
+        "msg_58": "Cloning {length} posts (including closed ones) from **{name}**...",
+        "msg_59": "⚠️ Could not clone post \\`{name}\\`."
+    }
+}
