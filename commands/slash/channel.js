@@ -1,4 +1,81 @@
-const { getMessage } = require("../../utils/messages");
+const MESSAGES = {
+  channel: {
+    msg_1: "you do not have permission to manage server channels.",
+    msg_2: "Selected category is invalid.",
+    msg_3: "Invalid preset name: {presetName}.",
+    msg_4: "Community features are not enabled. Attempting to enable first... (Requires rules & updates channels)",
+    msg_5: "Failed to create prerequisite rules channel for community setup. Cannot proceed.",
+    msg_6: "Failed to create prerequisite community updates channel for community setup. Cannot proceed.",
+    msg_7: "Community features enabled. Preparing channel preview... (Rules: <#{id}>, Updates: <#{id}>)",
+    msg_8: "Failed to enable community features: {var1}. Cannot proceed with preset.",
+    msg_9: "```\n{chunk}\n```",
+    msg_10: "Preset confirmation timed out. No channels were created.",
+    msg_11: "An unexpected error occurred during preset creation.",
+    msg_12: "Selected category (ID: {categoryId}) no longer exists or is not a category.",
+    msg_13: "Successfully created {channelType} channel: <#{id}>",
+    msg_14: "There was an error trying to create the channel.",
+    msg_15: "Successfully renamed channel from \"{oldName}\" to \"{newName}\" (<#{id}>).",
+    msg_16: "An error occurred while renaming the channel. Check my permissions.",
+    msg_17: "Could not find {mentionableType} {mentionString} in this server.",
+    msg_18: "No permission changes were specified.",
+    msg_19: "Successfully updated permissions for {mentionableType} {mentionString} in channel <#{id}>.",
+    msg_20: "An error occurred while updating permissions. Check channel hierarchy and bot permissions.",
+    msg_21: "Select a role or user to configure permissions for in <#{id}>:",
+    msg_22: "No selection was made. Command cancelled.",
+    msg_23: "Selected role could not be found. Please try again.",
+    msg_24: "Selected user could not be found. Please try again.",
+    msg_25: "You can run this command:\n`{commandSuggestion}`",
+    msg_26: "Selection timed out. Command cancelled.",
+    msg_27: "An error occurred while setting up the selection menu. Please try again.",
+    msg_28: "Invalid category specified.",
+    msg_29: "You need the Manage Channels permission to sync permissions.",
+    msg_30: "I need both Manage Channels and Manage Roles permissions to sync permissions.",
+    msg_31: "No channels found in this category to sync.",
+    msg_32: "An error occurred while syncing permissions.",
+    msg_33: "Deleting {size} channels from category {name}...",
+    msg_34: "Successfully deleted all {deletedCount} channels from category {name}. Now deleting the category...",
+    msg_35: "Cannot delete channel \"{name}\" because it contains messages.",
+    msg_36: "An error occurred while deleting the channel. Check permissions.",
+    msg_37: "An error occurred while processing the delete command. Check permissions.",
+    msg_38: "Select the channels you want to delete:",
+    msg_39: "No channels were selected.",
+    msg_40: "You are about to delete {length} channel(s):\n{channelNames}\n**This action cannot be undone!** Are you sure?",
+    msg_41: "Channel selection timed out. No channels were deleted.",
+    msg_42: "Channel deletion cancelled.",
+    msg_43: "Deleting {length} channels... This may take a moment.",
+    msg_44: "Confirmation timed out. No channels were deleted.",
+    msg_45: "An error occurred while setting up the channel deletion menu. Please try again.",
+    msg_46: "Successfully cleared all permission overwrites from <#{id}>.",
+    msg_47: "An error occurred while clearing permission overwrites. Check my permissions.",
+    msg_48: "Select the channels you want to clear all permission overwrites from:",
+    msg_49: "No channels were selected.",
+    msg_50: "Channel selection timed out. No permission overwrites were cleared.",
+    msg_51: "An error occurred while setting up the channel selection. Please try again.",
+    msg_52: "You must provide a symbol for the `custom_divider` option when selecting type Custom.",
+    msg_53: "Invalid category selection (ID: {categoryId}). Please choose a valid category.",
+    msg_54: "Cannot apply divider to channel type: {var1}.",
+    msg_55: "No applicable channels found for scope: {scopeDescription}.",
+    msg_56: "{actionText} {length} channel(s) in {scopeDescription}... (This may take time)",
+    msg_57: "An unexpected error occurred processing the command.",
+    msg_58: "Cloning {length} posts (including closed ones) from **{name}**...",
+    msg_59: "Could not clone post `{name}`."
+  }
+};
+
+function getMessage(keyPath, variables = {}) {
+  const keys = keyPath.split('.');
+  let result = MESSAGES;
+  for (const key of keys) {
+    if (result[key] === undefined) return `[Missing String: ${keyPath}]`;
+    result = result[key];
+  }
+  if (typeof result !== 'string') return `[Invalid String: ${keyPath}]`;
+  let formatted = result;
+  for (const [vKey, vVal] of Object.entries(variables)) {
+    formatted = formatted.replace(new RegExp(`\\{${vKey}\\}`, 'g'), vVal);
+  }
+  return formatted;
+}
 const {
   SlashCommandBuilder,
   ChannelType,
@@ -498,12 +575,12 @@ module.exports = {
                 }
                 const newCategory = await guild.channels.create(categoryOptions);
                 createdCategories[item.name] = newCategory.id;
-                logMessages.push(`✅ Created Category: ${newCategory.name}`);
+                logMessages.push(`[Success] Created Category: ${newCategory.name}`);
                 createdCount++;
                 await wait(1100); // Rate limit delay
               } catch (err) {
                 console.error(`Preset: Error creating category ${item.name}:`, err);
-                logMessages.push(`❌ Failed Category: ${item.name} (${err.message})`);
+                logMessages.push(`[Failed] Category: ${item.name} (${err.message})`);
                 failedCount++;
               }
             }
@@ -514,7 +591,7 @@ module.exports = {
             const itemsToCreate = item.children ? item.children : item.type !== ChannelType.GuildCategory ? [item] : [];
             const parentId = item.children ? createdCategories[item.name] : undefined;
             if (item.children && !parentId) {
-              logMessages.push(`⚠️ Skipping channels in category '${item.name}' because category creation failed.`);
+              logMessages.push(`[Warning] Skipping channels in category '${item.name}' because category creation failed.`);
               failedCount += item.children.length;
               continue; // Skip children if category failed
             }
@@ -532,12 +609,12 @@ module.exports = {
                   }];
                 }
                 const newChannel = await guild.channels.create(channelOptions);
-                logMessages.push(`✅ Created Channel: ${newChannel.name} ${parentId ? `in ${item.name}` : ""}`);
+                logMessages.push(`[Success] Created Channel: ${newChannel.name} ${parentId ? `in ${item.name}` : ""}`);
                 createdCount++;
                 await wait(1100); // Rate limit delay
               } catch (err) {
                 console.error(`Preset: Error creating channel ${channel.name}:`, err);
-                logMessages.push(`❌ Failed Channel: ${channel.name} (${err.message})`);
+                logMessages.push(`[Failed] Channel: ${channel.name} (${err.message})`);
                 failedCount++;
               }
             }
@@ -939,7 +1016,7 @@ module.exports = {
         }
         let replyMessage = `Synced permissions for ${syncedCount} channel(s) with category <#${category.id}>.`;
         if (failedCount > 0) {
-          replyMessage += `\n⚠️ Failed to sync ${failedCount} channel(s):\n${failedChannels.map(c => `- ${c}`).join("\n")}`;
+          replyMessage += `\nFailed to sync ${failedCount} channel(s):\n${failedChannels.map(c => `- ${c}`).join("\n")}`;
         }
         await interaction.editReply({
           content: replyMessage,
@@ -1010,7 +1087,7 @@ module.exports = {
               // If we had failures, report them
               if (failedCount > 0) {
                 await interaction.editReply({
-                  content: `Deleted ${deletedCount} channels from category ${targetChannel.name}.\n` + `\n⚠️ Failed to delete ${failedCount} channels:\n${failedChannels.map(c => `- ${c}`).join("\n")}` + `\nNow attempting to delete the category...`,
+                  content: `Deleted ${deletedCount} channels from category ${targetChannel.name}.\n` + `\nFailed to delete ${failedCount} channels:\n${failedChannels.map(c => `- ${c}`).join("\n")}` + `\nNow attempting to delete the category...`,
                   flags: MessageFlags.Ephemeral
                 }).catch(err => {
                   console.error("Failed to send progress update about channel deletion:", err);
@@ -1215,9 +1292,9 @@ module.exports = {
                   }
 
                   // Prepare result message
-                  let resultMessage = `Results of channel deletion:\n✅ Successfully deleted: ${successCount} channel(s)`;
+                  let resultMessage = `Results of channel deletion:\nSuccessfully deleted: ${successCount} channel(s)`;
                   if (errorCount > 0) {
-                    resultMessage += `\n❌ Failed to delete: ${errorCount} channel(s):\n${errorChannels.map(e => `- ${e}`).join("\n")}`;
+                    resultMessage += `\nFailed to delete: ${errorCount} channel(s):\n${errorChannels.map(e => `- ${e}`).join("\n")}`;
                   }
 
                   // Update with the final results
@@ -1351,9 +1428,9 @@ module.exports = {
             }
 
             // Prepare result message
-            let resultMessage = `Results of clearing permission overwrites:\n✅ Successfully cleared: ${successCount} channel(s)`;
+            let resultMessage = `Results of clearing permission overwrites:\nSuccessfully cleared: ${successCount} channel(s)`;
             if (errorCount > 0) {
-              resultMessage += `\n❌ Failed to clear: ${errorCount} channel(s):\n${errorChannels.map(e => `- ${e}`).join("\n")}`;
+              resultMessage += `\nFailed to clear: ${errorCount} channel(s):\n${errorChannels.map(e => `- ${e}`).join("\n")}`;
             }
 
             // Update the message with results

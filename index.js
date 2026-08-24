@@ -67,6 +67,15 @@ client.on(Events.InteractionCreate, async (interaction) => {
     const command = interaction.client.commands.get(interaction.commandName);
     if (!command) return;
 
+    if (typeof command.autocomplete === "function") {
+        try {
+            return await command.autocomplete(interaction);
+        } catch (err) {
+            console.error(`Autocomplete error for command ${interaction.commandName}:`, err);
+            return interaction.respond([]).catch(() => {});
+        }
+    }
+
     // --- Channel Category Autocomplete ---
     if (
         interaction.commandName === "channel" &&

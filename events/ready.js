@@ -1,11 +1,12 @@
 const { Events } = require('discord.js');
-const { setClient } = require('../utils/messages');
 
 module.exports = {
     name: Events.ClientReady,
     once: true,
-    execute(client) {
-        setClient(client);
+    async execute(client) {
+        if (client.application && typeof client.application.emojis?.fetch === 'function') {
+            client.application.emojis.fetch().catch(console.error);
+        }
         console.log(`Ready! Logged in as ${client.user.tag}`);
     },
 };

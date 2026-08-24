@@ -108,7 +108,7 @@ class InteractiveProgress {
                 this.isCancelled = true;
                 this.isPaused = false; // Unpause so the loop can exit
                 this.collector.stop('cancelled');
-                await i.update({ content: this._buildContent() + '\n⚠️ **Cancelled by user.**', components: [] });
+                await i.update({ content: this._buildContent() + '\n**Cancelled by user.**', components: [] });
             }
         });
         
@@ -128,10 +128,10 @@ class InteractiveProgress {
         const emptyLength = barLength - filledLength;
         const bar = '█'.repeat(filledLength) + '░'.repeat(emptyLength);
 
-        let status = '🔄 In Progress';
-        if (this.isCancelled) status = '❌ Cancelled';
-        else if (this.isPaused) status = '⏸️ Paused';
-        else if (this.current >= this.total) status = '✅ Completed';
+        let status = '[In Progress]';
+        if (this.isCancelled) status = '[Cancelled]';
+        else if (this.isPaused) status = '[Paused]';
+        else if (this.current >= this.total) status = '[Completed]';
 
         let content = `**${this.actionName}** - ${status}\n`;
         content += `Progress: [${bar}] ${percent}%\n`;

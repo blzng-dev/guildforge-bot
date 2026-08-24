@@ -4,7 +4,46 @@ const {
     PermissionsBitField,
     MessageFlags,
 } = require("discord.js");
-const { getMessage } = require("../../utils/messages");
+const MESSAGES = {
+    clone: {
+        error_target_not_found: ":x_: **Error:** Could not find the target server with ID `{targetGuildId}`. Make sure the bot is in that server.",
+        error_source_admin: ":x_: **Error:** You must have the `Administrator` permission in the **source** server to perform cross-server cloning.",
+        error_target_admin: ":x_: **Error:** You must have the `Administrator` permission in the **target** server to perform cross-server cloning.",
+        channel: {
+            error_invalid: ":x_: Invalid channel ID. Ensure it's a valid non-forum channel.",
+            success: ":checkmark: Cloned channel **{name}** successfully."
+        },
+        forum: {
+            error_invalid: ":x_: Invalid channel ID. Ensure it's a valid forum channel.",
+            success: ":checkmark: Cloned forum **{name}** successfully.",
+            progress_finish: ":followed: Cloned posts in **{name}**."
+        },
+        category: {
+            error_invalid: ":x_: Invalid category ID. Ensure it's a valid category.",
+            progress_finish: ":checkmark: Successfully cloned category into **{name}**."
+        },
+        server: {
+            error_cross_server: ":x_: **Error:** You must specify a different target server for server cloning.",
+            cloning_roles: ":sync: Cloning {count} roles...",
+            progress_finish: ":checkmark: Successfully cloned server {sourceName} to {targetName}."
+        }
+    }
+};
+
+function getMessage(keyPath, variables = {}) {
+    const keys = keyPath.split('.');
+    let result = MESSAGES;
+    for (const key of keys) {
+        if (result[key] === undefined) return `[Missing String: ${keyPath}]`;
+        result = result[key];
+    }
+    if (typeof result !== 'string') return `[Invalid String: ${keyPath}]`;
+    let formatted = result;
+    for (const [vKey, vVal] of Object.entries(variables)) {
+        formatted = formatted.replace(new RegExp(`\\{${vKey}\\}`, 'g'), vVal);
+    }
+    return formatted;
+}
 const { InteractiveProgress } = require("../../utils/progress.js");
 const { logAction } = require("../../utils/logger.js");
 
@@ -341,7 +380,7 @@ module.exports = {
             const parentlessChannels = channels.filter(ch => !ch.parentId && ch.type !== ChannelType.GuildCategory).sort((a, b) => a.position - b.position);
             
             const totalItems = categories.size + parentlessChannels.size + channels.filter(ch => ch.parentId).size;
-            const progressManager = new InteractiveProgress(interaction, totalItems, `Cloning Server: ${sourceGuild.name} ➡️ ${targetGuild.name}`);
+            const progressManager = new InteractiveProgress(interaction, totalItems, `Cloning Server: ${sourceGuild.name} -> ${targetGuild.name}`);
             await progressManager.start();
 
             // Clone categories and their children

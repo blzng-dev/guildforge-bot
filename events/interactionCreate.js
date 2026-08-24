@@ -1,5 +1,4 @@
 const { Events, MessageFlags } = require('discord.js');
-const { getMessage } = require('../utils/messages');
 
 module.exports = {
     name: Events.InteractionCreate,
@@ -17,10 +16,11 @@ module.exports = {
             await command.execute(interaction);
         } catch (error) {
             console.error(error);
+            const errorMessage = "There was an error while executing this command!";
             if (interaction.replied || interaction.deferred) {
-                await interaction.followUp({ content: getMessage('events.interactionCreate.error'), flags: MessageFlags.Ephemeral });
+                await interaction.followUp({ content: errorMessage, flags: MessageFlags.Ephemeral });
             } else {
-                await interaction.reply({ content: getMessage('events.interactionCreate.error'), flags: MessageFlags.Ephemeral });
+                await interaction.reply({ content: errorMessage, flags: MessageFlags.Ephemeral });
             }
         }
     },

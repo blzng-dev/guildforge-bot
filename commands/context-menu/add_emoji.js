@@ -1,5 +1,26 @@
 const { ContextMenuCommandBuilder, ApplicationCommandType, PermissionFlagsBits } = require('discord.js');
-const { getMessage } = require('../../utils/messages');
+
+const MESSAGES = {
+    add_emoji: {
+        error_none_found: ":x_: No custom emojis found in this message.",
+        results: "**Emoji Add Results:**\n{successList}{failedList}"
+    }
+};
+
+function getMessage(keyPath, variables = {}) {
+    const keys = keyPath.split('.');
+    let result = MESSAGES;
+    for (const key of keys) {
+        if (result[key] === undefined) return `[Missing String: ${keyPath}]`;
+        result = result[key];
+    }
+    if (typeof result !== 'string') return `[Invalid String: ${keyPath}]`;
+    let formatted = result;
+    for (const [vKey, vVal] of Object.entries(variables)) {
+        formatted = formatted.replace(new RegExp(`\\{${vKey}\\}`, 'g'), vVal);
+    }
+    return formatted;
+}
 
 module.exports = {
     category: 'context-menu',
@@ -60,10 +81,10 @@ module.exports = {
         let successList = '';
         let failedList = '';
         if (results.success.length > 0) {
-            successList = `✅ Added (${results.success.length}): ${results.success.join(' ')}\n`;
+            successList = `Added (${results.success.length}): ${results.success.join(' ')}\n`;
         }
         if (results.failed.length > 0) {
-            failedList = `❌ Failed (${results.failed.length}): ${results.failed.join(', ')}\n`;
+            failedList = `Failed (${results.failed.length}): ${results.failed.join(', ')}\n`;
         }
         let replyMessage = getMessage('add_emoji.results', { successList, failedList });
 

@@ -54,8 +54,10 @@ A complete suite for handling server roles.
     -   Edit an existing role's name, color, settings, and individual permissions.
 -   **/role toggle**
     -   Easily add or remove a specific role from a user.
--   **/role transfer**
+-   **/role migrate**
     -   Moves all members from a "secondary" role to a "primary" role, with options to generate a transcript or delete the old role.
+-   **/role transfer**
+    -   Copies all copyable/assignable roles from one user (`from`) to another user (`to`).
 -   **/role list**
     -   Displays a list of all server roles (sends a file if the list is too long).
 -   **/role scrape**

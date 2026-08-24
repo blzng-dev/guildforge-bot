@@ -12,9 +12,140 @@ const {
   ModalBuilder,
   TextInputBuilder
 } = require("discord.js");
-const {
-  getMessage
-} = require("../../utils/messages");
+const MESSAGES = {
+  role: {
+    error_no_permission: "you do not have permission to manage server roles.",
+    create_bulk: {
+      error_no_names: "No valid role names provided.",
+      error_limit: "Please limit to 50 roles at a time.",
+      success: "Successfully created {createdCount} roles.",
+      failed: "\nFailed to create {failedCount} roles:\n{failedNames}"
+    },
+    create: {
+      error_invalid_color: "Invalid hex color format.",
+      position_error_everyone: "\n*(Cannot position below @everyone)*",
+      position_error_hierarchy_below: "\n*(Could not position below {roleName} due to hierarchy)*",
+      position_success_below: "\n*(Positioned below {roleName})*",
+      position_error_hierarchy_above: "\n*(Could not position above {roleName} due to hierarchy)*",
+      position_success_above: "\n*(Positioned above {roleName})*",
+      success: "Successfully created role: <@&{roleId}>{positionMessage}",
+      error_unknown: "There was an error trying to create the role."
+    },
+    preset: {
+      error_invalid: "Invalid preset selected.",
+      success: "Successfully created role <@&{roleId}> using the \"{presetName}\" preset.",
+      error_unknown: "There was an error trying to create the preset role."
+    },
+    list: {
+      error_empty: "There are no roles in this server (besides @everyone).",
+      success: "**Server Roles ({count}):**\n{roleString}",
+      success_file: "There are too many roles ({count}) to display directly. Here is a list as a file:",
+      error_unknown: "An error occurred while trying to list the roles."
+    },
+    color: {
+      error_read: "Error reading/parsing `colorRoles.json`. Make sure file exists & is valid JSON.",
+      error_invalid_json: "`colorRoles.json` does not contain a valid JSON array.",
+      results: "Color role creation finished.\n- Created: {createdCount}\n- Existed: {skippedCount}\n- Failed: {errorCount}"
+    },
+    msg_1: "There are no roles in this server (besides @everyone).",
+    msg_2: "Deleting {length} created roles...",
+    msg_3: "Deletion finished. Deleted: {deletedCount}. Failed: {deleteErrorCount}.",
+    msg_4: "Successfully scraped {length} roles. Here is the JSON file:",
+    msg_5: "There was an error trying to scrape roles.",
+    msg_6: "An error occurred while trying to get role info.",
+    msg_7: "Please select the roles you want to export:",
+    msg_8: "Selection timed out.",
+    msg_9: "No roles selected or found to export.",
+    msg_10: "Deleting roles...",
+    msg_11: "Deletion finished. Deleted: {deletedCount}. Failed: {failedCount}.",
+    msg_12: "Select the roles you want to delete:",
+    msg_13: "Deleting selected roles...",
+    msg_14: "Deletion finished. Deleted: {deletedCount}. Failed: {failedCount}.",
+    msg_15: "An error occurred while trying to export roles.",
+    msg_16: "Failed to read the attached file. Make sure it is valid JSON.",
+    msg_17: "Invalid JSON format. Expected an object or array of objects.",
+    msg_18: "Import finished.\n- Roles Created: {createdCount}\n- Roles Existing/Restored: {restoredCount}\n- Role Assignments: {assignedCount}\n- Skipped Members (not in guild): {skippedMembers}",
+    msg_19: "An error occurred while processing the import. Make sure the JSON structure is correct.",
+    msg_20: "Could not find user {tag} in this server.",
+    msg_21: "I cannot manage the role {name} because it's higher than or equal to my highest role.",
+    msg_22: "You cannot manage the role {name} because it's higher than or equal to your highest role.",
+    msg_23: "Removed role <@&{id}> from {tag}.",
+    msg_24: "Added role <@&{id}> to {tag}.",
+    msg_25: "Failed to toggle role <@&{id}>. Check my permissions and role hierarchy.",
+    msg_26: "I cannot manage the role {name} because it's higher than or equal to my highest role.",
+    msg_27: "You cannot manage the role {name} because it's higher than or equal to your highest role.",
+    msg_28: "Cannot modify the @everyone role with this command.",
+    msg_29: "Invalid hex color format. Use format #RRGGBB (e.g., #FF0000 for red).",
+    msg_30: "No changes specified for the role.",
+    msg_31: "Successfully updated role <@&{id}> ({var2}).",
+    msg_32: "An error occurred while modifying the role. Check my permissions and role hierarchy.",
+    msg_33: "I cannot modify the role {name} because it's higher than or equal to my highest role.",
+    msg_34: "You cannot modify the role {name} because it's higher than or equal to your highest role.",
+    msg_35: "Cannot modify the @everyone role with this command.",
+    msg_36: "Successfully cleared all permissions from the role <@&{id}>.",
+    msg_37: "An error occurred while clearing permissions. Check my permissions and role hierarchy.",
+    msg_38: "Select the roles you want to clear all permissions from:",
+    msg_39: "No roles were selected.",
+    msg_40: "Role selection timed out. No permissions were cleared.",
+    msg_41: "An error occurred while setting up the role selection. Please try again.",
+    msg_42: "To delete a range of roles, you must specify both `start_role` and `end_role`.",
+    msg_43: "The start and end roles cannot be the same for range deletion.",
+    msg_44: "No roles found between **{name}** and **{name}**.",
+    msg_45: "Found {size} roles between boundaries, but none can be deleted.{params}",
+    msg_46: "Deleting {length} roles...",
+    msg_47: "I cannot delete the role {name} because it's higher than or equal to my highest role.",
+    msg_48: "You cannot delete the role {name} because it's higher than or equal to your highest role.",
+    msg_49: "Cannot delete the @everyone role.",
+    msg_50: "Cannot delete the role \"{name}\" because it currently has {size} member(s).",
+    msg_51: "Successfully deleted the role \"{roleName}\" (was <@&{roleId}>).",
+    msg_52: "An error occurred while deleting the role. Check my permissions and role hierarchy.",
+    msg_53: "I cannot manage one or both of these roles because they are higher than or equal to my highest role.",
+    msg_54: "You cannot manage one or both of these roles because they are higher than or equal to your highest role.",
+    msg_55: "The primary and secondary roles cannot be the same.",
+    msg_56: "No members found with the role {secondaryRole}.",
+    msg_57: "Found {memberCount} members with {secondaryRole}. Starting transfer to {primaryRole}...",
+    msg_58: "An unexpected error occurred while processing the request.",
+    msg_59: "Select the roles you want to delete:",
+    msg_60: "No roles were selected.",
+    msg_61: "You are about to delete {length} role(s):\n{roleNames}\n\n**This action cannot be undone!** Are you sure?",
+    msg_62: "Role selection timed out. No roles were deleted.",
+    msg_63: "Role deletion cancelled.",
+    msg_64: "Deleting {length} roles... This may take a moment.",
+    msg_65: "Confirmation timed out. No roles were deleted.",
+    msg_66: "An error occurred while setting up the role deletion menu. Please try again.",
+    msg_67: "No valid roles selected to move.",
+    msg_68: "Cannot place roles relative to a pivot role higher than my highest role.",
+    msg_69: "Cannot move role {name} because it is higher or equal to my highest role.",
+    msg_70: "Calculating new role positions...",
+    msg_71: "Pivot role not found.",
+    msg_72: ":checkmark: Successfully moved {length} roles {positionOption} {name}.",
+    msg_73: ":x_: Failed to reorder roles due to an error.",
+    msg_74: "No roles found strictly between the specified range.",
+    msg_75: "The following roles will be moved {positionOption} **{name}**:\n{roleList}\n\nDo you want to proceed?",
+    msg_76: "Reorder cancelled.",
+    msg_77: "Confirmation timed out. Reorder cancelled.",
+    msg_78: "Select the roles you want to move **{positionOption}** {name}:",
+    msg_79: "You've selected {length} roles to move **{positionOption}** {name}. Confirm?",
+    msg_80: "Selection timed out.",
+    msg_81: "Role reorder cancelled.",
+    msg_82: "Confirmation timed out."
+  }
+};
+
+function getMessage(keyPath, variables = {}) {
+  const keys = keyPath.split('.');
+  let result = MESSAGES;
+  for (const key of keys) {
+    if (result[key] === undefined) return `[Missing String: ${keyPath}]`;
+    result = result[key];
+  }
+  if (typeof result !== 'string') return `[Invalid String: ${keyPath}]`;
+  let formatted = result;
+  for (const [vKey, vVal] of Object.entries(variables)) {
+    formatted = formatted.replace(new RegExp(`\\{${vKey}\\}`, 'g'), vVal);
+  }
+  return formatted;
+}
 const fs = require("node:fs/promises");
 const path = require("node:path");
 const {
@@ -86,7 +217,7 @@ module.exports = {
       subcommand.addStringOption(option => option.setName(permName).setDescription(`set permission: ${permName.replace(/_/g, " ")}`).addChoices(...permissionChoices));
     }
     return subcommand;
-  }).addSubcommand(subcommand => subcommand.setName("clear").setDescription("clear all permissions from roles").addRoleOption(option => option.setName("target").setDescription("role to clear (leave empty for multiple)").setRequired(false))).addSubcommand(subcommand => subcommand.setName("delete").setDescription("delete roles").addRoleOption(option => option.setName("target").setDescription("role to delete (leave empty for multiple)").setRequired(false)).addRoleOption(option => option.setName("start_role").setDescription("start role for range deletion").setRequired(false)).addRoleOption(option => option.setName("end_role").setDescription("end role for range deletion").setRequired(false)).addBooleanOption(option => option.setName("include_boundaries").setDescription("include start/end roles in deletion? (default false)").setRequired(false))).addSubcommand(subcommand => subcommand.setName("transfer").setDescription("transfer members between roles").addRoleOption(option => option.setName("primary_role").setDescription("the role to assign").setRequired(true)).addRoleOption(option => option.setName("secondary_role").setDescription("the role to select from").setRequired(true)).addBooleanOption(option => option.setName("transcript").setDescription("generate transcript before transfer").setRequired(false)).addBooleanOption(option => option.setName("delete_secondary").setDescription("delete secondary role after transfer").setRequired(false))).addSubcommand(subcommand => subcommand.setName("reorder").setDescription("re-arrange roles by moving them above or below a pivot role.").addRoleOption(option => option.setName("pivot").setDescription("the pivot role").setRequired(true)).addStringOption(option => option.setName("position").setDescription("place above or below pivot (default below)").addChoices({
+  }).addSubcommand(subcommand => subcommand.setName("clear").setDescription("clear all permissions from roles").addRoleOption(option => option.setName("target").setDescription("role to clear (leave empty for multiple)").setRequired(false))).addSubcommand(subcommand => subcommand.setName("delete").setDescription("delete roles").addRoleOption(option => option.setName("target").setDescription("role to delete (leave empty for multiple)").setRequired(false)).addRoleOption(option => option.setName("start_role").setDescription("start role for range deletion").setRequired(false)).addRoleOption(option => option.setName("end_role").setDescription("end role for range deletion").setRequired(false)).addBooleanOption(option => option.setName("include_boundaries").setDescription("include start/end roles in deletion? (default false)").setRequired(false))).addSubcommand(subcommand => subcommand.setName("migrate").setDescription("migrate members between roles").addRoleOption(option => option.setName("primary_role").setDescription("the role to assign").setRequired(true)).addRoleOption(option => option.setName("secondary_role").setDescription("the role to select from").setRequired(true)).addBooleanOption(option => option.setName("transcript").setDescription("generate transcript before migration").setRequired(false)).addBooleanOption(option => option.setName("delete_secondary").setDescription("delete secondary role after migration").setRequired(false))).addSubcommand(subcommand => subcommand.setName("transfer").setDescription("copy roles from one user to another").addUserOption(option => option.setName("from").setDescription("the user to copy roles from").setRequired(true)).addUserOption(option => option.setName("to").setDescription("the user to copy roles to").setRequired(true))).addSubcommand(subcommand => subcommand.setName("reorder").setDescription("re-arrange roles by moving them above or below a pivot role.").addRoleOption(option => option.setName("pivot").setDescription("the pivot role").setRequired(true)).addStringOption(option => option.setName("position").setDescription("place above or below pivot (default below)").addChoices({
     name: "Above",
     value: "above"
   }, {
@@ -1169,12 +1300,12 @@ module.exports = {
             }
 
             // Prepare result message
-            let resultMessage = `Results of clearing permissions:\n✅ Successfully cleared: ${successCount} role(s)`;
+            let resultMessage = `Results of clearing permissions:\nSuccessfully cleared: ${successCount} role(s)`;
             if (skippedCount > 0) {
-              resultMessage += `\n⚠️ Skipped due to hierarchy: ${skippedCount} role(s):\n${skippedRoles.map(s => `- ${s}`).join("\n")}`;
+              resultMessage += `\nSkipped due to hierarchy: ${skippedCount} role(s):\n${skippedRoles.map(s => `- ${s}`).join("\n")}`;
             }
             if (errorCount > 0) {
-              resultMessage += `\n❌ Failed to clear: ${errorCount} role(s):\n${errorRoles.map(e => `- ${e}`).join("\n")}`;
+              resultMessage += `\nFailed to clear: ${errorCount} role(s):\n${errorRoles.map(e => `- ${e}`).join("\n")}`;
             }
 
             // Update the message with results
@@ -1284,7 +1415,7 @@ module.exports = {
         // Sort for display
         rolesToDelete.sort((a, b) => b.position - a.position);
         const roleNames = rolesToDelete.map(r => `- ${r.name}`).join("\n");
-        const prompt = `Found **${rolesInRange.size}** roles between **${startRole.name}** and **${endRole.name}**.\n` + `**Roles to delete (${rolesToDelete.length}):**\n${roleNames}\n` + (skippedRoles.length > 0 ? `⚠️ **Skipped (${skippedRoles.length}):**\n${skippedRoles.map(s => `- ${s}`).join("\n")}\n` : "") + `\n**Are you sure you want to delete these roles? This cannot be undone.**`;
+        const prompt = `Found **${rolesInRange.size}** roles between **${startRole.name}** and **${endRole.name}**.\n` + `**Roles to delete (${rolesToDelete.length}):**\n${roleNames}\n` + (skippedRoles.length > 0 ? `**Skipped (${skippedRoles.length}):**\n${skippedRoles.map(s => `- ${s}`).join("\n")}\n` : "") + `\n**Are you sure you want to delete these roles? This cannot be undone.**`;
         const confirmed = await confirmAction(interaction, prompt);
         if (!confirmed) return;
 
@@ -1312,7 +1443,7 @@ module.exports = {
           }
         }
         await interaction.editReply({
-          content: `**Range Deletion Complete**\n` + `✅ Successfully deleted: ${successCount}\n` + (failCount > 0 ? `❌ Failed: ${failCount}\n${failedNames.map(f => `- ${f}`).join("\n")}` : ""),
+          content: `**Range Deletion Complete**\n` + `Successfully deleted: ${successCount}\n` + (failCount > 0 ? `Failed: ${failCount}\n${failedNames.map(f => `- ${f}`).join("\n")}` : ""),
           components: []
         });
       }
@@ -1380,9 +1511,9 @@ module.exports = {
         }
       }
       // ============================
-      // === TRANSFER Subcommand ===
+      // === MIGRATE Subcommand ===
       // ============================
-      else if (subcommand === "transfer") {
+      else if (subcommand === "migrate") {
         const primaryRole = interaction.options.getRole("primary_role");
         const secondaryRole = interaction.options.getRole("secondary_role");
         const generateTranscript = interaction.options.getBoolean("transcript") || false;
@@ -1413,7 +1544,7 @@ module.exports = {
             flags: MessageFlags.Ephemeral
           });
         }
-        const prompt = deleteSecondary ? `Are you sure you want to transfer members from "${secondaryRole.name}" to "${primaryRole.name}" AND DELETE "${secondaryRole.name}"?` : `Are you sure you want to transfer members from "${secondaryRole.name}" to "${primaryRole.name}"?`;
+        const prompt = deleteSecondary ? `Are you sure you want to migrate members from "${secondaryRole.name}" to "${primaryRole.name}" AND DELETE "${secondaryRole.name}"?` : `Are you sure you want to migrate members from "${secondaryRole.name}" to "${primaryRole.name}"?`;
         const confirmed = await confirmAction(interaction, prompt);
         if (!confirmed) return;
         try {
@@ -1462,12 +1593,12 @@ module.exports = {
               failCount++;
             }
           }
-          let resultMsg = `**Transfer Complete**\n- Successfully assigned ${primaryRole} to ${successCount} members.\n- Failed: ${failCount}`;
+          let resultMsg = `**Migration Complete**\n- Successfully assigned ${primaryRole} to ${successCount} members.\n- Failed: ${failCount}`;
 
           // --- 5. Delete Secondary Role (Optional) ---
           if (deleteSecondary) {
             try {
-              await secondaryRole.delete(`Role transfer command by ${interaction.user.tag}`);
+              await secondaryRole.delete(`Role migration command by ${interaction.user.tag}`);
               resultMsg += `\n**Secondary Role Deleted**: The role "${secondaryRole.name}" has been deleted from the server.`;
             } catch (err) {
               console.error(`Failed to delete role ${secondaryRole.name}:`, err);
@@ -1482,13 +1613,77 @@ module.exports = {
           };
           if (attachment) {
             replyOptions.files = [attachment];
-            replyOptions.content += `\n📄 **Transcript**: Attached is the list of member IDs who had the secondary role.`;
+            replyOptions.content += `\n**Transcript**: Attached is the list of member IDs who had the secondary role.`;
           }
           await interaction.editReply(replyOptions);
         } catch (error) {
-          console.error("Error executing transfer command:", error);
+          console.error("Error executing migrate command:", error);
           await interaction.editReply({
             content: getMessage("role.msg_58")
+          });
+        }
+      }
+      // ============================
+      // === TRANSFER Subcommand ===
+      // ============================
+      else if (subcommand === "transfer") {
+        const fromUser = interaction.options.getUser("from");
+        const toUser = interaction.options.getUser("to");
+
+        const fromMember = await interaction.guild.members.fetch(fromUser.id).catch(() => null);
+        const toMember = await interaction.guild.members.fetch(toUser.id).catch(() => null);
+
+        if (!fromMember || !toMember) {
+          return interaction.editReply({
+            content: "Could not find one or both members in the server.",
+            flags: MessageFlags.Ephemeral
+          });
+        }
+
+        if (fromMember.id === toMember.id) {
+          return interaction.editReply({
+            content: "The 'from' and 'to' users cannot be the same person.",
+            flags: MessageFlags.Ephemeral
+          });
+        }
+
+        // Get bot's highest role position
+        const botHighestPosition = interaction.guild.members.me.roles.highest.position;
+        // Get author's highest role position
+        const authorHighestPosition = interaction.member.roles.highest.position;
+        const userIsOwner = interaction.guild.ownerId === interaction.user.id;
+
+        // Get assignable roles from source member
+        const rolesToCopy = fromMember.roles.cache.filter(role => {
+          if (role.id === interaction.guild.id) return false; // Exclude @everyone
+          if (role.managed) return false; // Exclude managed roles (e.g. booster/bot integration roles)
+          if (role.position >= botHighestPosition) return false; // Bot cannot assign roles higher than itself
+          if (!userIsOwner && role.position >= authorHighestPosition) return false; // Command user cannot assign roles higher than their own
+          return !toMember.roles.cache.has(role.id); // Only roles the target doesn't already have
+        });
+
+        if (rolesToCopy.size === 0) {
+          return interaction.editReply({
+            content: `No new copyable/assignable roles found on **${fromMember.user.tag}** to copy to **${toMember.user.tag}** (they may already have them, or roles exceed hierarchy limits).`,
+            flags: MessageFlags.Ephemeral
+          });
+        }
+
+        const roleListString = rolesToCopy.map(role => role.name).join(", ");
+        const confirmed = await confirmAction(interaction, `Are you sure you want to copy the following **${rolesToCopy.size}** roles from **${fromMember.user.tag}** to **${toMember.user.tag}**?\n\n**Roles:** *${roleListString}*`);
+        if (!confirmed) return;
+
+        try {
+          await toMember.roles.add(rolesToCopy);
+          await interaction.editReply({
+            content: `Successfully copied **${rolesToCopy.size}** roles from **${fromMember.user.tag}** to **${toMember.user.tag}**:\n${rolesToCopy.map(role => `${role}`).join(", ")}`,
+            flags: MessageFlags.Ephemeral
+          });
+        } catch (error) {
+          console.error("Error executing transfer roles command:", error);
+          await interaction.editReply({
+            content: "An error occurred while copying roles. Please check my permissions and role hierarchy.",
+            flags: MessageFlags.Ephemeral
           });
         }
       }
@@ -1628,12 +1823,12 @@ module.exports = {
                   }
 
                   // Prepare result message
-                  let resultMessage = `Results of role deletion:\n✅ Successfully deleted: ${successCount} role(s)`;
+                  let resultMessage = `Results of role deletion:\nSuccessfully deleted: ${successCount} role(s)`;
                   if (skippedCount > 0) {
-                    resultMessage += `\n⚠️ Skipped due to hierarchy: ${skippedCount} role(s):\n${skippedRoles.map(s => `- ${s}`).join("\n")}`;
+                    resultMessage += `\nSkipped due to hierarchy: ${skippedCount} role(s):\n${skippedRoles.map(s => `- ${s}`).join("\n")}`;
                   }
                   if (errorCount > 0) {
-                    resultMessage += `\n❌ Failed to delete: ${errorCount} role(s):\n${errorRoles.map(e => `- ${e}`).join("\n")}`;
+                    resultMessage += `\nFailed to delete: ${errorCount} role(s):\n${errorRoles.map(e => `- ${e}`).join("\n")}`;
                   }
 
                   // Update with the final results
