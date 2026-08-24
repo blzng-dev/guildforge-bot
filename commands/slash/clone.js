@@ -358,18 +358,32 @@ module.exports = {
                 
                 await interaction.editReply({ content: getMessage('clone.server.cloning_roles', { count: roles.size }) });
                 
+                const targetHasEnhanced = targetGuild.features.includes("ENHANCED_ROLE_COLORS");
                 for (const role of roles.values()) {
                     if (role.id === sourceGuild.roles.everyone.id) continue;
                     if (role.managed) continue; 
                     
                     try {
-                        const newRole = await targetGuild.roles.create({
+                        const createOptions = {
                             name: role.name,
-                            color: role.color,
                             hoist: role.hoist,
                             permissions: role.permissions,
                             mentionable: role.mentionable,
-                        });
+                        };
+
+                        if (role.colors && targetHasEnhanced && (role.colors.secondaryColor || role.colors.tertiaryColor)) {
+                            createOptions.colors = {
+                                primaryColor: role.colors.primaryColor,
+                                secondaryColor: role.colors.secondaryColor ?? undefined,
+                                tertiaryColor: role.colors.tertiaryColor ?? undefined,
+                            };
+                        } else if (role.color) {
+                            createOptions.colors = {
+                                primaryColor: role.color,
+                            };
+                        }
+
+                        const newRole = await targetGuild.roles.create(createOptions);
                         roleMap.set(role.id, newRole.id);
                     } catch(e) {}
                 }

@@ -23,6 +23,8 @@ const MESSAGES = {
     },
     create: {
       error_invalid_color: "Invalid hex color format.",
+      error_invalid_secondary_color: "Invalid secondary hex color format.",
+      error_missing_primary_color: "A primary color is required when specifying a secondary color for a gradient.",
       position_error_everyone: "\n*(Cannot position below @everyone)*",
       position_error_hierarchy_below: "\n*(Could not position below {roleName} due to hierarchy)*",
       position_success_below: "\n*(Positioned below {roleName})*",
@@ -146,6 +148,21 @@ function getMessage(keyPath, variables = {}) {
   }
   return formatted;
 }
+
+function normalizeHexColor(input) {
+  if (!input || typeof input !== "string") return null;
+  const val = input.trim().replace(/^#/, "");
+  if (/^f$/i.test(val)) return "#ffffff";
+  if (/^0$/i.test(val)) return "#000000";
+  if (/^[0-9a-fA-F]{3}$/.test(val)) {
+    return `#${val[0]}${val[0]}${val[1]}${val[1]}${val[2]}${val[2]}`;
+  }
+  if (/^[0-9a-fA-F]{6}$/.test(val)) {
+    return `#${val}`;
+  }
+  return null;
+}
+
 const fs = require("node:fs/promises");
 const path = require("node:path");
 const {
@@ -202,7 +219,7 @@ module.exports = {
   data: new SlashCommandBuilder().setName("role").setDescription("manage server roles").setDefaultMemberPermissions(PermissionsBitField.Flags.ManageGuild).setDMPermission(false)
 
   // --- Create Subcommand (Permissions option removed) ---
-  .addSubcommand(subcommand => subcommand.setName("create").setDescription("create a new role").addStringOption(option => option.setName("name").setDescription("name for the new role").setRequired(true)).addStringOption(option => option.setName("color").setDescription("hex color code").setRequired(false)).addBooleanOption(option => option.setName("hoist").setDescription("hoist role in member list").setRequired(false)).addBooleanOption(option => option.setName("mentionable").setDescription("allow anyone to mention this role").setRequired(false)).addRoleOption(option => option.setName("below_role").setDescription("position below this role").setRequired(false)).addRoleOption(option => option.setName("above_role").setDescription("position above this role").setRequired(false))).addSubcommand(subcommand => subcommand.setName("create-bulk").setDescription("create multiple roles via modal")).addSubcommand(subcommand => subcommand.setName("preset").setDescription("create a role from preset").addStringOption(option => option.setName("preset_name").setDescription("select permission preset").setRequired(true).addChoices({
+  .addSubcommand(subcommand => subcommand.setName("create").setDescription("create a new role").addStringOption(option => option.setName("name").setDescription("name for the new role").setRequired(true)).addStringOption(option => option.setName("color").setDescription("hex color code").setRequired(false)).addStringOption(option => option.setName("secondary_color").setDescription("secondary hex color code for gradient role").setRequired(false)).addBooleanOption(option => option.setName("hoist").setDescription("hoist role in member list").setRequired(false)).addBooleanOption(option => option.setName("mentionable").setDescription("allow anyone to mention this role").setRequired(false)).addRoleOption(option => option.setName("below_role").setDescription("position below this role").setRequired(false)).addRoleOption(option => option.setName("above_role").setDescription("position above this role").setRequired(false))).addSubcommand(subcommand => subcommand.setName("create-bulk").setDescription("create multiple roles via modal")).addSubcommand(subcommand => subcommand.setName("preset").setDescription("create a role from preset").addStringOption(option => option.setName("preset_name").setDescription("select permission preset").setRequired(true).addChoices({
     name: "Moderator",
     value: "mod"
   }, {
@@ -322,28 +339,61 @@ module.exports = {
     // ============================
     else if (subcommand === "create") {
       const roleName = interaction.options.getString("name");
-      const color = interaction.options.getString("color");
+      let color = interaction.options.getString("color");
+      let secondaryColor = interaction.options.getString("secondary_color");
       const hoisted = interaction.options.getBoolean("hoist");
       const mentionable = interaction.options.getBoolean("mentionable");
       const belowRole = interaction.options.getRole("below_role");
       const aboveRole = interaction.options.getRole("above_role");
-      if (color && !/^#[0-9A-F]{6}$/i.test(color)) {
+
+      if (color) {
+        const normalized = normalizeHexColor(color);
+        if (!normalized) {
+          return interaction.editReply({
+            content: getMessage('role.create.error_invalid_color'),
+            flags: MessageFlags.Ephemeral
+          });
+        }
+        color = normalized;
+      }
+
+      if (secondaryColor) {
+        const normalized = normalizeHexColor(secondaryColor);
+        if (!normalized) {
+          return interaction.editReply({
+            content: getMessage('role.create.error_invalid_secondary_color'),
+            flags: MessageFlags.Ephemeral
+          });
+        }
+        secondaryColor = normalized;
+      }
+
+      if (secondaryColor && !color) {
         return interaction.editReply({
-          content: getMessage('role.create.error_invalid_color'),
+          content: getMessage('role.create.error_missing_primary_color'),
           flags: MessageFlags.Ephemeral
         });
       }
+      const hasEnhancedRoleColors = interaction.guild.features.includes("ENHANCED_ROLE_COLORS");
       try {
         const roleOptions = {
           name: roleName,
-          color: color !== null ? color : undefined,
-          // Only include if provided
           hoist: hoisted !== null ? hoisted : false,
           // Default false
           mentionable: mentionable !== null ? mentionable : false,
           // Default false
           permissions: [] // Default no permissions for 'create'
         };
+        if (secondaryColor && color && hasEnhancedRoleColors) {
+          roleOptions.colors = {
+            primaryColor: color,
+            secondaryColor: secondaryColor
+          };
+        } else if (color) {
+          roleOptions.colors = {
+            primaryColor: color
+          };
+        }
         const targetRole = await interaction.guild.roles.create(roleOptions);
         let positionMessage = "";
         if (belowRole || aboveRole) {
@@ -527,11 +577,13 @@ module.exports = {
           skippedCount++;
           continue;
         }
-        if (!/^#[0-9A-F]{6}$/i.test(roleData.color)) {
+        const normalizedColor = normalizeHexColor(roleData.color);
+        if (!normalizedColor) {
           console.warn(`Skipping "${roleData.name}" invalid color: ${roleData.color}`);
           errorCount++;
           continue;
         }
+        roleData.color = normalizedColor;
         try {
           const newRole = await interaction.guild.roles.create({
             name: roleData.name,
@@ -750,9 +802,26 @@ module.exports = {
         for (const role of rolesToExport) {
           // Explicitly filter cached members to ensure only those with the role are included
           const memberIds = interaction.guild.members.cache.filter(m => m.roles.cache.has(role.id)).map(m => m.id);
+          let secondaryHex = null;
+          let tertiaryHex = null;
+          if (role.colors) {
+            if (role.colors.secondaryColor !== null && role.colors.secondaryColor !== undefined) {
+              secondaryHex = `#${role.colors.secondaryColor.toString(16).padStart(6, '0')}`;
+            }
+            if (role.colors.tertiaryColor !== null && role.colors.tertiaryColor !== undefined) {
+              tertiaryHex = `#${role.colors.tertiaryColor.toString(16).padStart(6, '0')}`;
+            }
+          }
           exportData.push({
             name: role.name,
             color: role.hexColor,
+            secondary_color: secondaryHex,
+            tertiary_color: tertiaryHex,
+            colors: role.colors ? {
+              primaryColor: role.colors.primaryColor,
+              secondaryColor: role.colors.secondaryColor,
+              tertiaryColor: role.colors.tertiaryColor
+            } : undefined,
             id: role.id,
             hoisted: role.hoist,
             pingable: role.mentionable,
@@ -945,17 +1014,35 @@ module.exports = {
         let restoredCount = 0;
         let assignedCount = 0;
         let skippedMembers = 0;
+        const hasEnhancedRoleColors = interaction.guild.features.includes("ENHANCED_ROLE_COLORS");
         for (const roleData of rolesToProcess) {
           let role = interaction.guild.roles.cache.find(r => r.id === roleData.id || r.name === roleData.name);
           if (!role) {
-            // Create the role
-            role = await interaction.guild.roles.create({
+            const roleCreateOptions = {
               name: roleData.name,
-              color: roleData.color,
-              hoist: roleData.hoisted,
-              mentionable: roleData.pingable,
+              hoist: roleData.hoisted ?? false,
+              mentionable: roleData.pingable ?? false,
               permissions: roleData.permissions ? roleData.permissions : []
-            });
+            };
+
+            const secondaryColor = roleData.secondary_color || roleData.colors?.secondaryColor;
+            const primaryColor = roleData.color || (roleData.colors?.primaryColor !== undefined ? (typeof roleData.colors.primaryColor === 'number' ? `#${roleData.colors.primaryColor.toString(16).padStart(6, '0')}` : roleData.colors.primaryColor) : undefined);
+            const tertiaryColor = roleData.tertiary_color || roleData.colors?.tertiaryColor;
+
+            if (hasEnhancedRoleColors && (secondaryColor || tertiaryColor)) {
+              roleCreateOptions.colors = {
+                primaryColor: primaryColor,
+                secondaryColor: secondaryColor ? (typeof secondaryColor === 'number' ? `#${secondaryColor.toString(16).padStart(6, '0')}` : secondaryColor) : undefined,
+                tertiaryColor: tertiaryColor ? (typeof tertiaryColor === 'number' ? `#${tertiaryColor.toString(16).padStart(6, '0')}` : tertiaryColor) : undefined
+              };
+            } else if (primaryColor) {
+              roleCreateOptions.colors = {
+                primaryColor: primaryColor
+              };
+            }
+
+            // Create the role
+            role = await interaction.guild.roles.create(roleCreateOptions);
             createdCount++;
           } else {
             restoredCount++;
@@ -1101,13 +1188,14 @@ module.exports = {
         // Handle basic settings
         if (newName !== null) roleOptions.name = newName;
         if (color !== null) {
-          if (!/^#[0-9A-F]{6}$/i.test(color)) {
+          const normalized = normalizeHexColor(color);
+          if (!normalized) {
             return interaction.editReply({
               content: getMessage("role.msg_29"),
               flags: MessageFlags.Ephemeral
             });
           }
-          roleOptions.color = color;
+          roleOptions.color = normalized;
         }
         if (hoisted !== null) roleOptions.hoist = hoisted;
         if (mentionable !== null) roleOptions.mentionable = mentionable;
