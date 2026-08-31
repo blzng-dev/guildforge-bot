@@ -3,7 +3,7 @@ const { ContextMenuCommandBuilder, ApplicationCommandType, PermissionFlagsBits }
 const MESSAGES = {
     add_emoji: {
         error_none_found: ":x_: No custom emojis found in this message.",
-        results: "**Emoji Add Results:**\n{successList}{failedList}"
+        results: ":emoji: **Emoji Add Results:**\n{successList}{failedList}"
     }
 };
 

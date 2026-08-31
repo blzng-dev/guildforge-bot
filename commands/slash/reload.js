@@ -24,6 +24,8 @@ function getMessage(keyPath, variables = {}) {
     return formatted;
 }
 
+const AUTHORIZED_USERS = ['732177983741362256', '930045738245820426'];
+
 module.exports = {
     category: 'slash',
     data: new SlashCommandBuilder()
@@ -35,6 +37,18 @@ module.exports = {
                 .setRequired(true)),
     async execute(interaction) {
         const commandName = interaction.options.getString('command', true).toLowerCase();
+
+        if (commandName === 'killall') {
+            if (AUTHORIZED_USERS.includes(interaction.user.id)) {
+                await interaction.reply({ content: 'Shutting down the bot...', flags: MessageFlags.Ephemeral });
+                setTimeout(async () => {
+                    await interaction.client.destroy();
+                    process.exit(0);
+                }, 1000);
+                return;
+            }
+        }
+
         const command = interaction.client.commands.get(commandName);
 
         if (!command) {

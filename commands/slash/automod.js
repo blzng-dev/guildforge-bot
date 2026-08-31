@@ -15,94 +15,97 @@ const { logAction } = require("../../utils/logger.js");
 
 const COMMAND_ID = "1541299934291173507";
 
+// ====================================================================
+// STRINGS / MESSAGES DICTIONARY (LOCAL TO COMMAND)
+// ====================================================================
 const MESSAGES = {
     list: {
         header: "# Server AutoMod Configuration ({size}/10 Rules Active)\n\n",
         starter_header: "## Starter Rules (4 Slots)\n",
         custom_header:
             "\n## Custom Keyword & Regex Rules ({size}/6 Slots Used)\n",
-        no_custom: `No custom rules created yet. Run </automod create:${COMMAND_ID}> to make one.\n`,
+        no_custom: `No custom rules created yet. Run </automod rule create:${COMMAND_ID}> to make one.\n`,
         mention_active:
-            "* **Mention Spam Filter:** [Active]\n  * **Trigger:** >{limit} mentions\n  * **Actions:** {actions}\n",
+            "- **Mention Spam Filter:** [Active]\n  - Trigger: >{limit} mentions\n  - Actions: {actions}\n",
         spam_active:
-            "* **Suspected Spam Filter:** [Active]\n  * **Actions:** {actions}\n",
+            "- **Suspected Spam Filter:** [Active]\n  - Actions: {actions}\n",
         flagged_active:
-            "* **Flagged Words Filter:** [Active]\n  * **Presets:** {presets}\n  * **Whitelist:** {whitelistCount} bypass words\n  * **Actions:** {actions}\n",
+            "- **Flagged Words Filter:** [Active]\n  - Presets: {presets}\n  - Whitelist: {whitelistCount} bypass words\n  - Actions: {actions}\n",
         profile_active:
-            "* **Member Profile Filter:** [Active]\n  * **Keywords:** {kwCount} | **Regex:** {regexCount} | **Whitelist:** {whitelistCount}\n  * **Actions:** {actions}\n",
-        inactive_starters: `* **Inactive Starter Rules:** {rules} (Run </automod enable:${COMMAND_ID}> to activate)\n`,
+            "- **Member Profile Filter:** [Active]\n  - Keywords: {kwCount} | Regex: {regexCount} | Whitelist: {whitelistCount}\n  - Actions: {actions}\n",
+        inactive_starters: `- Inactive Starter Rules: {rules} (Run </automod rule enable:${COMMAND_ID}> to activate)\n`,
         custom_item:
-            "* **{name}** {status}\n  * **Filters:** {kwCount} Keywords | {regexCount} Regex | {whitelistCount} Whitelisted\n  * **Actions:** {actions}\n  * **Exemptions:** {exemptRoles} Roles, {exemptChannels} Channels\n",
+            "- **{name}** {status}\n  - Filters: {kwCount} Keywords | {regexCount} Regex | {whitelistCount} Whitelisted\n  - Actions: {actions}\n  - Exemptions: {exemptRoles} Roles, {exemptChannels} Channels\n",
         detail_header:
-            "# AutoMod Rule Details: **{name}**\n\n* **Status:** {status}\n* **Trigger Type:** {triggerType}\n* **Actions:** {actions}\n* **Exemptions:** {exemptRoles} Roles, {exemptChannels} Channels\n\n",
-        detail_keywords: "**Blocked Keywords** ({count}/1000):\n{list}\n\n",
-        detail_whitelist: "**Whitelisted Phrases** ({count}/100):\n{list}\n\n",
-        detail_regex: "**Regex Patterns** ({count}/10):\n{list}\n\n",
+            "# AutoMod Rule Details: **{name}**\n\n- Status: {status}\n- Trigger Type: {triggerType}\n- Actions: {actions}\n- Exemptions: {exemptRoles} Roles, {exemptChannels} Channels\n\n",
+        detail_keywords: "### Blocked Keywords ({count}/1000):\n{list}\n\n",
+        detail_whitelist: "### Whitelisted Phrases ({count}/100):\n{list}\n\n",
+        detail_regex: "### Regex Patterns ({count}/10):\n{list}\n\n",
     },
     create: {
         max_rules:
-            "**Error:** Maximum Custom Rules Reached. Discord allows up to 6 custom keyword rules per server.",
-        success: `**Custom Rule Created:** **{name}**\n* **Action:** Block Message (Default)\nNext steps:\n* </automod keyword add:${COMMAND_ID}>\n* </automod regex add:${COMMAND_ID}>\n* </automod config:${COMMAND_ID}>`,
+            "Error: Maximum Custom Rules Reached. Discord allows up to 6 custom keyword rules per server.",
+        success: `Custom Rule Created: **{name}**\n- Action: Block Message (Default)\nNext steps:\n- </automod keyword add:${COMMAND_ID}>\n- </automod regex add:${COMMAND_ID}>\n- </automod rule config:${COMMAND_ID}>`,
     },
     enable: {
-        already_enabled: "**Rule is already enabled:** **{name}**",
-        success: "**Rule Enabled:** **{name}**",
-        starter_created: `**{name} Enabled!**\nDefault settings applied. Run </automod config:${COMMAND_ID}> to customize.`,
+        already_enabled: "Rule is already enabled: **{name}**",
+        success: "Rule Enabled: **{name}**",
+        starter_created: `**{name}** Enabled!\nDefault settings applied. Run </automod rule config:${COMMAND_ID}> to customize.`,
     },
     disable: {
         already_disabled:
-            "**Rule is already disabled or inactive:** **{name}**",
-        success: "**Rule Disabled:** **{name}**",
+            "Rule is already disabled or inactive: **{name}**",
+        success: "Rule Disabled: **{name}**",
     },
     config: {
-        not_found: "**Error:** Rule not found.",
+        not_found: "Error: Rule not found.",
         success:
-            "**Rule Updated:** **{name}**\n* **Actions:** {actions}{extra}",
+            "Rule Updated: **{name}**\n- Actions: {actions}{extra}",
     },
     keyword: {
         not_supported:
-            "**Error:** This rule does not support keywords. Keywords are supported on Member Profile and Custom rules.",
+            "Error: This rule does not support keywords. Keywords are supported on Member Profile and Custom rules.",
         limit_reached:
-            "**Error:** Keyword limit reached. Discord allows up to 1,000 keywords per rule (currently {count}).",
+            "Error: Keyword limit reached. Discord allows up to 1,000 keywords per rule (currently {count}).",
         add_success:
-            '**Added Keyword(s) to "{name}":**\n{words}\nTotal keywords: **{count}/1000**',
+            'Added keyword(s) to **{name}**:\n{words}\nTotal keywords: {count}/1000',
         not_found:
-            '**Error:** Keyword "{word}" was not found in rule "{name}".',
+            'Error: Keyword "{word}" was not found in rule **{name}**.',
         edit_success:
-            '**Updated Keyword in "{name}":**\n`{oldWord}` -> `{newWord}`',
+            'Updated keyword in **{name}**:\n`{oldWord}` -> `{newWord}`',
         remove_success:
-            '**Removed Keyword from "{name}":**\n`{word}`\nRemaining keywords: **{count}/1000**',
+            'Removed keyword from **{name}**:\n`{word}`\nRemaining keywords: {count}/1000',
     },
     whitelist: {
         not_supported:
-            "**Error:** This rule does not support whitelists. Whitelists are supported on Flagged Words, Member Profile, and Custom rules.",
+            "Error: This rule does not support whitelists. Whitelists are supported on Flagged Words, Member Profile, and Custom rules.",
         limit_reached:
-            "**Error:** Whitelist limit reached. Discord allows up to 100 bypass words per rule (currently {count}).",
+            "Error: Whitelist limit reached. Discord allows up to 100 bypass words per rule (currently {count}).",
         add_success:
-            '**Added Whitelist Word(s) to "{name}":**\n{words}\nTotal whitelist words: **{count}/100**',
+            'Added whitelist phrase(s) to **{name}**:\n{words}\nTotal whitelist phrases: {count}/100',
         not_found:
-            '**Error:** Whitelist word "{word}" was not found in rule "{name}".',
+            'Error: Whitelist phrase "{word}" was not found in rule **{name}**.',
         edit_success:
-            '**Updated Whitelist Word in "{name}":**\n`{oldWord}` -> `{newWord}`',
+            'Updated whitelist phrase in **{name}**:\n`{oldWord}` -> `{newWord}`',
         remove_success:
-            '**Removed Whitelist Word from "{name}":**\n`{word}`\nRemaining whitelist words: **{count}/100**',
+            'Removed whitelist phrase from **{name}**:\n`{word}`\nRemaining whitelist phrases: {count}/100',
     },
     regex: {
         not_supported:
-            "**Error:** This rule does not support regex patterns. Regex is supported on Member Profile and Custom rules.",
+            "Error: This rule does not support regex patterns. Regex is supported on Member Profile and Custom rules.",
         limit_reached:
-            "**Error:** Regex limit reached. Discord allows up to 10 regex patterns per rule (currently {count}).",
+            "Error: Regex limit reached. Discord allows up to 10 regex patterns per rule (currently {count}).",
         invalid_pattern:
-            "**Error:** Invalid regex pattern. JavaScript RegExp error: `{error}`",
+            "Error: Invalid regex pattern. JavaScript RegExp error: `{error}`",
         too_long:
-            "**Error:** Regex pattern exceeds maximum allowed length of 260 characters.",
+            "Error: Regex pattern exceeds maximum allowed length of 260 characters.",
         add_success:
-            '**Added Regex Pattern to "{name}":**\n```regex\n{pattern}\n```\nTotal patterns: **{count}/10**',
-        not_found: '**Error:** Regex pattern was not found in rule "{name}".',
+            'Added regex pattern to **{name}**:\n```regex\n{pattern}\n```\nTotal patterns: {count}/10',
+        not_found: 'Error: Regex pattern was not found in rule **{name}**.',
         edit_success:
-            '**Updated Regex Pattern in "{name}":**\n```regex\n{pattern}\n```',
+            'Updated regex pattern in **{name}**:\n```regex\n{pattern}\n```',
         remove_success:
-            '**Removed Regex Pattern from "{name}":**\n```regex\n{pattern}\n```\nRemaining patterns: **{count}/10**',
+            'Removed regex pattern from **{name}**:\n```regex\n{pattern}\n```\nRemaining patterns: {count}/10',
     },
     exempt: {
         header: "# Exemption Settings: **{name}**\n\n### Exempted Roles ({roleCount}/20):\n{roles}\n### Exempted Channels ({channelCount}/50):\n{channels}\nUse the dropdown menus below to update exempted roles or channels in real time.",
@@ -111,7 +114,7 @@ const MESSAGES = {
     },
     common: {
         unknown_subcommand: "Unknown AutoMod subcommand.",
-        error: "**Error:** {error}",
+        error: "Error: {error}",
     },
 };
 
@@ -244,170 +247,173 @@ module.exports = {
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
         .setDMPermission(false)
 
-        // 1. LIST OVERVIEW OR DETAIL
-        .addSubcommand((sub) =>
-            sub
-                .setName("list")
-                .setDescription(
-                    "List all AutoMod rules or view detailed configuration for a specific rule",
-                )
-                .addStringOption((opt) =>
-                    opt
-                        .setName("rule")
+        // 1. RULE GROUP (Lifecycle, Configuration & Exemption)
+        .addSubcommandGroup((group) =>
+            group
+                .setName("rule")
+                .setDescription("Manage AutoMod rule lifecycles, configuration, and exemptions")
+                .addSubcommand((sub) =>
+                    sub
+                        .setName("list")
                         .setDescription(
-                            "Select a rule to view detailed settings for",
+                            "List all AutoMod rules or view detailed configuration for a specific rule",
                         )
-                        .setRequired(false)
-                        .setAutocomplete(true),
+                        .addStringOption((opt) =>
+                            opt
+                                .setName("rule")
+                                .setDescription(
+                                    "Select a rule to view detailed settings for",
+                                )
+                                .setRequired(false)
+                                .setAutocomplete(true),
+                        ),
+                )
+                .addSubcommand((sub) =>
+                    sub
+                        .setName("create")
+                        .setDescription(
+                            "Create a new custom AutoMod keyword rule container",
+                        )
+                        .addStringOption((opt) =>
+                            opt
+                                .setName("name")
+                                .setDescription("Name for the custom rule")
+                                .setRequired(true),
+                        ),
+                )
+                .addSubcommand((sub) =>
+                    sub
+                        .setName("enable")
+                        .setDescription(
+                            "Enable a built-in starter rule or custom rule",
+                        )
+                        .addStringOption((opt) =>
+                            opt
+                                .setName("rule")
+                                .setDescription("Target rule to enable")
+                                .setRequired(true)
+                                .setAutocomplete(true),
+                        ),
+                )
+                .addSubcommand((sub) =>
+                    sub
+                        .setName("disable")
+                        .setDescription(
+                            "Disable a built-in starter rule or custom rule",
+                        )
+                        .addStringOption((opt) =>
+                            opt
+                                .setName("rule")
+                                .setDescription("Target rule to disable")
+                                .setRequired(true)
+                                .setAutocomplete(true),
+                        ),
+                )
+                .addSubcommand((sub) =>
+                    sub
+                        .setName("config")
+                        .setDescription(
+                            "Configure trigger settings, thresholds, and actions for a rule",
+                        )
+                        .addStringOption((opt) =>
+                            opt
+                                .setName("rule")
+                                .setDescription("Target rule to configure")
+                                .setRequired(true)
+                                .setAutocomplete(true),
+                        )
+                        .addStringOption((opt) =>
+                            opt
+                                .setName("new_name")
+                                .setDescription("Rename custom rule")
+                                .setRequired(false),
+                        )
+                        .addIntegerOption((opt) =>
+                            opt
+                                .setName("limit")
+                                .setDescription(
+                                    "Max unique mentions per message (1-50, for Mention Spam)",
+                                )
+                                .setMinValue(1)
+                                .setMaxValue(50)
+                                .setRequired(false),
+                        )
+                        .addBooleanOption((opt) =>
+                            opt
+                                .setName("profanity")
+                                .setDescription(
+                                    "Filter profanity preset (Flagged Words)",
+                                )
+                                .setRequired(false),
+                        )
+                        .addBooleanOption((opt) =>
+                            opt
+                                .setName("sexual_content")
+                                .setDescription(
+                                    "Filter sexually explicit content (Flagged Words)",
+                                )
+                                .setRequired(false),
+                        )
+                        .addBooleanOption((opt) =>
+                            opt
+                                .setName("slurs")
+                                .setDescription(
+                                    "Filter hate speech preset (Flagged Words)",
+                                )
+                                .setRequired(false),
+                        )
+                        .addBooleanOption((opt) =>
+                            opt
+                                .setName("block")
+                                .setDescription(
+                                    "Block matching messages/interactions",
+                                )
+                                .setRequired(false),
+                        )
+                        .addStringOption((opt) =>
+                            opt
+                                .setName("timeout")
+                                .setDescription(
+                                    "Timeout duration for violators",
+                                )
+                                .setRequired(false)
+                                .addChoices(...TIMEOUT_CHOICES),
+                        )
+                        .addChannelOption((opt) =>
+                            opt
+                                .setName("alert_channel")
+                                .setDescription(
+                                    "Channel to send violation alerts",
+                                )
+                                .addChannelTypes(ChannelType.GuildText)
+                                .setRequired(false),
+                        )
+                        .addStringOption((opt) =>
+                            opt
+                                .setName("custom_message")
+                                .setDescription(
+                                    "Explanation note shown to user when blocked",
+                                )
+                                .setRequired(false),
+                        ),
+                )
+                .addSubcommand((sub) =>
+                    sub
+                        .setName("exempt")
+                        .setDescription(
+                            "Configure exempted roles and channels for a rule",
+                        )
+                        .addStringOption((opt) =>
+                            opt
+                                .setName("rule")
+                                .setDescription("Target rule")
+                                .setRequired(true)
+                                .setAutocomplete(true),
+                        ),
                 ),
         )
 
-        // 2. CREATE CUSTOM RULE
-        .addSubcommand((sub) =>
-            sub
-                .setName("create")
-                .setDescription(
-                    "Create a new custom AutoMod keyword rule container",
-                )
-                .addStringOption((opt) =>
-                    opt
-                        .setName("name")
-                        .setDescription("Name for the custom rule")
-                        .setRequired(true),
-                ),
-        )
-
-        // 3. ENABLE RULE
-        .addSubcommand((sub) =>
-            sub
-                .setName("enable")
-                .setDescription("Enable a built-in starter rule or custom rule")
-                .addStringOption((opt) =>
-                    opt
-                        .setName("rule")
-                        .setDescription("Target rule to enable")
-                        .setRequired(true)
-                        .setAutocomplete(true),
-                ),
-        )
-
-        // 4. DISABLE RULE
-        .addSubcommand((sub) =>
-            sub
-                .setName("disable")
-                .setDescription(
-                    "Disable a built-in starter rule or custom rule",
-                )
-                .addStringOption((opt) =>
-                    opt
-                        .setName("rule")
-                        .setDescription("Target rule to disable")
-                        .setRequired(true)
-                        .setAutocomplete(true),
-                ),
-        )
-
-        // 5. CONFIG RULE
-        .addSubcommand((sub) =>
-            sub
-                .setName("config")
-                .setDescription(
-                    "Configure trigger settings, thresholds, and actions for a rule",
-                )
-                .addStringOption((opt) =>
-                    opt
-                        .setName("rule")
-                        .setDescription("Target rule to configure")
-                        .setRequired(true)
-                        .setAutocomplete(true),
-                )
-                .addStringOption((opt) =>
-                    opt
-                        .setName("new_name")
-                        .setDescription("Rename custom rule")
-                        .setRequired(false),
-                )
-                .addIntegerOption((opt) =>
-                    opt
-                        .setName("limit")
-                        .setDescription(
-                            "Max unique mentions per message (1-50, for Mention Spam)",
-                        )
-                        .setMinValue(1)
-                        .setMaxValue(50)
-                        .setRequired(false),
-                )
-                .addBooleanOption((opt) =>
-                    opt
-                        .setName("profanity")
-                        .setDescription(
-                            "Filter profanity preset (Flagged Words)",
-                        )
-                        .setRequired(false),
-                )
-                .addBooleanOption((opt) =>
-                    opt
-                        .setName("sexual_content")
-                        .setDescription(
-                            "Filter sexually explicit content (Flagged Words)",
-                        )
-                        .setRequired(false),
-                )
-                .addBooleanOption((opt) =>
-                    opt
-                        .setName("slurs")
-                        .setDescription(
-                            "Filter hate speech preset (Flagged Words)",
-                        )
-                        .setRequired(false),
-                )
-                .addBooleanOption((opt) =>
-                    opt
-                        .setName("block")
-                        .setDescription("Block matching messages/interactions")
-                        .setRequired(false),
-                )
-                .addStringOption((opt) =>
-                    opt
-                        .setName("timeout")
-                        .setDescription("Timeout duration for violators")
-                        .setRequired(false)
-                        .addChoices(...TIMEOUT_CHOICES),
-                )
-                .addChannelOption((opt) =>
-                    opt
-                        .setName("alert_channel")
-                        .setDescription("Channel to send violation alerts")
-                        .addChannelTypes(ChannelType.GuildText)
-                        .setRequired(false),
-                )
-                .addStringOption((opt) =>
-                    opt
-                        .setName("custom_message")
-                        .setDescription(
-                            "Explanation note shown to user when blocked",
-                        )
-                        .setRequired(false),
-                ),
-        )
-
-        // 6. EXEMPT DASHBOARD
-        .addSubcommand((sub) =>
-            sub
-                .setName("exempt")
-                .setDescription(
-                    "Configure exempted roles and channels for a rule",
-                )
-                .addStringOption((opt) =>
-                    opt
-                        .setName("rule")
-                        .setDescription("Target rule")
-                        .setRequired(true)
-                        .setAutocomplete(true),
-                ),
-        )
-
-        // 7. KEYWORD GROUP
+        // 2. KEYWORD GROUP
         .addSubcommandGroup((group) =>
             group
                 .setName("keyword")
@@ -478,15 +484,15 @@ module.exports = {
                 ),
         )
 
-        // 8. WHITELIST GROUP
+        // 3. WHITELIST GROUP
         .addSubcommandGroup((group) =>
             group
                 .setName("whitelist")
-                .setDescription("Manage bypass whitelist words for rules")
+                .setDescription("Manage bypass whitelist phrases for rules")
                 .addSubcommand((sub) =>
                     sub
                         .setName("add")
-                        .setDescription("Add bypass word(s) to a rule")
+                        .setDescription("Add bypass phrase(s) to a rule")
                         .addStringOption((opt) =>
                             opt
                                 .setName("rule")
@@ -498,7 +504,7 @@ module.exports = {
                             opt
                                 .setName("word")
                                 .setDescription(
-                                    "Word or comma-separated words to bypass",
+                                    "Phrase or comma-separated phrases to bypass",
                                 )
                                 .setRequired(true),
                         ),
@@ -507,7 +513,7 @@ module.exports = {
                     sub
                         .setName("edit")
                         .setDescription(
-                            "Edit an existing whitelist word in a rule",
+                            "Edit an existing whitelist phrase in a rule",
                         )
                         .addStringOption((opt) =>
                             opt
@@ -520,7 +526,7 @@ module.exports = {
                             opt
                                 .setName("old")
                                 .setDescription(
-                                    "Existing whitelist word to replace",
+                                    "Existing whitelist phrase to replace",
                                 )
                                 .setRequired(true)
                                 .setAutocomplete(true),
@@ -529,7 +535,7 @@ module.exports = {
                             opt
                                 .setName("new")
                                 .setDescription(
-                                    "New replacement whitelist word",
+                                    "New replacement whitelist phrase",
                                 )
                                 .setRequired(true),
                         ),
@@ -537,7 +543,7 @@ module.exports = {
                 .addSubcommand((sub) =>
                     sub
                         .setName("remove")
-                        .setDescription("Remove a whitelist word from a rule")
+                        .setDescription("Remove a whitelist phrase from a rule")
                         .addStringOption((opt) =>
                             opt
                                 .setName("rule")
@@ -548,18 +554,20 @@ module.exports = {
                         .addStringOption((opt) =>
                             opt
                                 .setName("word")
-                                .setDescription("Whitelist word to delete")
+                                .setDescription("Whitelist phrase to delete")
                                 .setRequired(true)
                                 .setAutocomplete(true),
                         ),
                 ),
         )
 
-        // 9. REGEX GROUP
+        // 4. REGEX GROUP
         .addSubcommandGroup((group) =>
             group
                 .setName("regex")
-                .setDescription("Manage regular expression patterns for rules")
+                .setDescription(
+                    "Manage regular expression patterns for rules",
+                )
                 .addSubcommand((sub) =>
                     sub
                         .setName("add")
@@ -648,7 +656,7 @@ module.exports = {
             if (focusedOption.name === "rule") {
                 const choices = [];
 
-                if (sub === "enable") {
+                if (group === "rule" && sub === "enable") {
                     // Check starter rules that are not yet created or currently disabled
                     const hasMention = rules.some(
                         (r) =>
@@ -657,8 +665,7 @@ module.exports = {
                     );
                     const hasSpam = rules.some(
                         (r) =>
-                            r.triggerType ===
-                            AutoModerationRuleTriggerType.Spam,
+                            r.triggerType === AutoModerationRuleTriggerType.Spam,
                     );
                     const hasFlagged = rules.some(
                         (r) =>
@@ -700,7 +707,7 @@ module.exports = {
                             });
                         }
                     }
-                } else if (sub === "disable") {
+                } else if (group === "rule" && sub === "disable") {
                     for (const rule of rules.values()) {
                         if (rule.enabled) {
                             choices.push({
@@ -757,7 +764,7 @@ module.exports = {
                         }
                     }
                 } else {
-                    // Default for config, exempt, list
+                    // Default for rule list, rule config, rule exempt
                     for (const rule of rules.values()) {
                         choices.push({
                             name: rule.name.slice(0, 100),
@@ -849,11 +856,11 @@ module.exports = {
     async execute(interaction) {
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-        const group = interaction.options.getSubcommandGroup(false);
+        const group = interaction.options.getSubcommandGroup();
         const sub = interaction.options.getSubcommand();
 
         try {
-            if (!group) {
+            if (group === "rule") {
                 if (sub === "list") return await handleList(interaction);
                 if (sub === "create") return await handleCreate(interaction);
                 if (sub === "enable") return await handleEnable(interaction);
@@ -865,28 +872,22 @@ module.exports = {
             if (group === "keyword") {
                 if (sub === "add") return await handleKeywordAdd(interaction);
                 if (sub === "edit") return await handleKeywordEdit(interaction);
-                if (sub === "remove")
-                    return await handleKeywordRemove(interaction);
+                if (sub === "remove") return await handleKeywordRemove(interaction);
             }
 
             if (group === "whitelist") {
                 if (sub === "add") return await handleWhitelistAdd(interaction);
-                if (sub === "edit")
-                    return await handleWhitelistEdit(interaction);
-                if (sub === "remove")
-                    return await handleWhitelistRemove(interaction);
+                if (sub === "edit") return await handleWhitelistEdit(interaction);
+                if (sub === "remove") return await handleWhitelistRemove(interaction);
             }
 
             if (group === "regex") {
                 if (sub === "add") return await handleRegexAdd(interaction);
                 if (sub === "edit") return await handleRegexEdit(interaction);
-                if (sub === "remove")
-                    return await handleRegexRemove(interaction);
+                if (sub === "remove") return await handleRegexRemove(interaction);
             }
 
-            return interaction.editReply(
-                getMessage("common.unknown_subcommand"),
-            );
+            return interaction.editReply(getMessage("common.unknown_subcommand"));
         } catch (error) {
             console.error("AutoMod command execution error:", error);
             return interaction.editReply(
@@ -919,13 +920,9 @@ async function handleList(interaction) {
             triggerTypeName = "Mention Spam";
         else if (rule.triggerType === AutoModerationRuleTriggerType.Spam)
             triggerTypeName = "Suspected Spam";
-        else if (
-            rule.triggerType === AutoModerationRuleTriggerType.KeywordPreset
-        )
+        else if (rule.triggerType === AutoModerationRuleTriggerType.KeywordPreset)
             triggerTypeName = "Flagged Word Presets";
-        else if (
-            rule.triggerType === AutoModerationRuleTriggerType.MemberProfile
-        )
+        else if (rule.triggerType === AutoModerationRuleTriggerType.MemberProfile)
             triggerTypeName = "Member Profile";
 
         let detail = getMessage("list.detail_header", {
@@ -966,7 +963,7 @@ async function handleList(interaction) {
         // Regex patterns list
         const regexes = rule.triggerMetadata?.regexPatterns || [];
         if (regexes.length > 0) {
-            const formattedRg = regexes.map((r) => `* \`${r}\``).join("\n");
+            const formattedRg = regexes.map((r) => `- \`${r}\``).join("\n");
             detail += getMessage("list.detail_regex", {
                 count: regexes.length,
                 list: formattedRg,
@@ -1041,7 +1038,8 @@ async function handleList(interaction) {
         output += getMessage("list.profile_active", {
             kwCount: profileRule.triggerMetadata?.keywordFilter?.length || 0,
             regexCount: profileRule.triggerMetadata?.regexPatterns?.length || 0,
-            whitelistCount: profileRule.triggerMetadata?.allowList?.length || 0,
+            whitelistCount:
+                profileRule.triggerMetadata?.allowList?.length || 0,
             actions: summarizeActions(profileRule.actions),
         });
     } else {
@@ -1298,7 +1296,7 @@ async function handleConfig(interaction) {
     // Trigger metadata updates
     if (isMentionSpam && limit !== null) {
         newTriggerMeta.mentionTotalLimit = limit;
-        extraSummary += `\n* **Mention Limit:** ${limit}`;
+        extraSummary += `\n- Mention Limit: ${limit}`;
     }
 
     if (isFlagged) {
@@ -1314,7 +1312,7 @@ async function handleConfig(interaction) {
             const names = newTriggerMeta.presets.map((p) =>
                 p === 1 ? "Profanity" : p === 2 ? "Sexual Content" : "Slurs",
             );
-            extraSummary += `\n* **Active Presets:** ${names.join(", ")}`;
+            extraSummary += `\n- Active Presets: ${names.join(", ")}`;
         }
     }
 
@@ -1523,7 +1521,7 @@ async function handleKeywordAdd(interaction) {
     return interaction.editReply(
         getMessage("keyword.add_success", {
             name: rule.name,
-            words: newWords.map((w) => `* \`${w}\``).join("\n"),
+            words: newWords.map((w) => `- \`${w}\``).join("\n"),
             count: merged.length,
         }),
     );
@@ -1673,7 +1671,7 @@ async function handleWhitelistAdd(interaction) {
     return interaction.editReply(
         getMessage("whitelist.add_success", {
             name: rule.name,
-            words: newWords.map((w) => `* \`${w}\``).join("\n"),
+            words: newWords.map((w) => `- \`${w}\``).join("\n"),
             count: merged.length,
         }),
     );

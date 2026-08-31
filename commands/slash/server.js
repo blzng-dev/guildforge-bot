@@ -11,25 +11,25 @@ const MESSAGES = {
     server: {
         error_no_permission: ":x_: You do not have permission to manage server settings.",
         auditlog: {
-            set: ":checkmark:  Audit log channel has been set to <#{channelId}>.",
-            disable: "Audit logging has been disabled."
+            set: ":checkmark: Audit log channel has been set to <#{channelId}>.",
+            disable: ":checkmark: Audit logging has been disabled."
         },
         verification: {
-            success: "Successfully set the server verification level to **{levelName}**."
+            success: ":checkmark: Successfully set the server verification level to **{levelName}**."
         },
         community: {
-            error_already_enabled: "Community features are already enabled for this server.",
-            success_updated: "Community settings updated: {parts}.",
-            error_update_failed: "Failed to update community channels: {error}",
-            error_create_rules: "Failed to create rules channel. Please provide an existing channel or check bot permissions.",
-            error_create_updates: "Failed to create community updates channel. Please provide an existing channel or check bot permissions.",
-            success_enabled: "Community features have been enabled! Rules channel set to <#{rulesId}> and updates channel set to <#{updatesId}>.\n*Note: The server verification level was adjusted to at least Low and explicit content filter to All Members to meet requirements.*{createdChannelsInfo}",
+            error_already_enabled: ":x_: Community features are already enabled for this server.",
+            success_updated: ":checkmark: Community settings updated: {parts}.",
+            error_update_failed: ":x_: Failed to update community channels: {error}",
+            error_create_rules: ":x_: Failed to create rules channel. Please provide an existing channel or check bot permissions.",
+            error_create_updates: ":x_: Failed to create community updates channel. Please provide an existing channel or check bot permissions.",
+            success_enabled: ":checkmark: Community features have been enabled! Rules channel set to <#{rulesId}> and updates channel set to <#{updatesId}>.\n*Note: The server verification level was adjusted to at least Low and explicit content filter to All Members to meet requirements.*{createdChannelsInfo}",
             created_channels_info: "\n\nThe following channels were automatically created: {channels}.\nYou may want to customize these channels with appropriate content.",
-            error_enable_failed: "Failed to enable community: {error}",
-            success_disabled: "Community features have been disabled for this server.",
-            error_disable_failed: "Failed to disable community features: {error}"
+            error_enable_failed: ":x_: Failed to enable community: {error}",
+            success_disabled: ":checkmark: Community features have been disabled for this server.",
+            error_disable_failed: ":x_: Failed to disable community features: {error}"
         },
-        error_generic: "Failed to update community settings.",
+        error_generic: ":x_: Failed to update community settings.",
         error_permissions: " The bot lacks necessary permissions to manage server settings.",
         error_validation: " Invalid form body. Discord API validation failed.",
         error_details: " Details: {details}",

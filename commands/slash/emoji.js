@@ -10,22 +10,22 @@ const {
 const MESSAGES = {
     emoji: {
         add: {
-            error_no_source: "You must provide at least one source (emoji, attachment, or link).",
+            error_no_source: ":x_: You must provide at least one source (emoji, attachment, or link).",
             prompt_multiple_sources: "You provided multiple image sources. Which one would you like to use?",
             action_cancelled: ":x_: Action cancelled.",
-            processing: "Processing {type}...",
-            error_timeout: "Confirmation timed out.",
-            error_invalid_format: "Invalid emoji format. Please provide a custom server emoji (like `<:name:id>`).",
+            processing: ":sync: Processing {type}...",
+            error_timeout: ":x_: Confirmation timed out.",
+            error_invalid_format: ":x_: Invalid emoji format. Please provide a custom server emoji (like `<:name:id>`).",
             success: ":checkmark: Successfully added emoji {emoji}!",
-            error_unknown: "Failed to add emoji due to an unknown error.",
-            error_slots_full: "Failed to add emoji: The server has reached the maximum number of emojis in this category.",
-            error_too_large: "Failed to add emoji: The file size is too large (max 256KB).",
-            error_invalid_image: "Failed to add emoji: Invalid image, format, or name."
+            error_unknown: ":unknown: Failed to add emoji due to an unknown error.",
+            error_slots_full: ":x_: Failed to add emoji: The server has reached the maximum number of emojis in this category.",
+            error_too_large: ":x_: Failed to add emoji: The file size is too large (max 256KB).",
+            error_invalid_image: ":x_: Failed to add emoji: Invalid image, format, or name."
         },
         list: {
-            error_none_found: "No emojis found matching your filter.",
-            title_paginated: "**Emoji List ({count}) [{current}/{total}]:**\n{content}",
-            title_full: "**Emoji List ({count}):**\n{content}"
+            error_none_found: ":search: No emojis found matching your filter.",
+            title_paginated: ":emoji: **Emoji List ({count}) [{current}/{total}]:**\n{content}",
+            title_full: ":emoji: **Emoji List ({count}):**\n{content}"
         },
         delete: {
             error_invalid_format: ":x_: Invalid emoji format. Please provide a custom emoji from this server.",
@@ -35,22 +35,22 @@ const MESSAGES = {
         },
         rename: {
             error_invalid_format: ":x_: Invalid emoji format. Please provide a custom emoji from this server.",
-            error_not_found: "The emoji `{name}` was not found in this server.",
-            success: "Successfully renamed emoji to `{newName}` {emoji}",
+            error_not_found: ":search: The emoji `{name}` was not found in this server.",
+            success: ":checkmark: Successfully renamed emoji to `{newName}` {emoji}",
             error_failed: ":x_: Failed to rename emoji. It might belong to Discord or a built-in integration."
         },
         info: {
             error_invalid_format: ":x_: Invalid emoji format. Please provide a custom emoji from this server.",
-            error_not_found: "The emoji `{name}` was not found in this server."
+            error_not_found: ":search: The emoji `{name}` was not found in this server."
         },
         bulk: {
             add: {
-                error_no_valid: "No valid custom emojis were found in your input. Please make sure you are using actual server custom emojis.",
-                results: "**Bulk Emoji Add Results:**\n{successList}{failedList}"
+                error_no_valid: ":x_: No valid custom emojis were found in your input. Please make sure you are using actual server custom emojis.",
+                results: ":emoji: **Bulk Emoji Add Results:**\n{successList}{failedList}"
             },
             delete: {
-                error_no_valid: "No valid custom emojis were found in your input. Please make sure you are using actual server custom emojis.",
-                results: "**Bulk Emoji Delete Results:**\n{successList}{failedList}"
+                error_no_valid: ":x_: No valid custom emojis were found in your input. Please make sure you are using actual server custom emojis.",
+                results: ":delete: **Bulk Emoji Delete Results:**\n{successList}{failedList}"
             }
         }
     }
