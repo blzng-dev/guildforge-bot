@@ -1,3 +1,5 @@
+const { MessageFlags } = require('discord.js');
+
 /**
  * Emoji utility for resolving custom application and guild emojis.
  * Converts emoji names like :checkmark: or :x_: to Discord formatted emojis <:name:id> or <a:name:id>.
@@ -78,6 +80,7 @@ function formatEmbedData(data, client, guild) {
 
 /**
  * Format any interaction / message payload (string, embed, object with content/embeds).
+ * Also attaches allowedMentions to disable pinging actual users or roles.
  * @param {any} payload 
  * @param {import('discord.js').Client} client 
  * @param {import('discord.js').Guild} [guild] 
@@ -86,34 +89,43 @@ function formatEmbedData(data, client, guild) {
 function formatPayload(payload, client, guild) {
     if (!payload) return payload;
 
-    if (typeof payload === 'string') {
-        return formatEmojisInString(payload, client, guild);
-    }
+    let resPayload = payload;
 
-    if (typeof payload !== 'object') return payload;
+    if (typeof resPayload === 'string') {
+        resPayload = {
+            content: formatEmojisInString(resPayload, client, guild),
+        };
+    } else if (typeof resPayload === 'object') {
+        // If payload is an EmbedBuilder or object with .data (without .embeds array)
+        if (resPayload.data && typeof resPayload.data === 'object') {
+            formatEmbedData(resPayload.data, client, guild);
+        }
 
-    // If payload is an EmbedBuilder or has .data
-    if (payload.data && typeof payload.data === 'object') {
-        formatEmbedData(payload.data, client, guild);
-    }
+        // Format content if present
+        if (typeof resPayload.content === 'string') {
+            resPayload.content = formatEmojisInString(resPayload.content, client, guild);
+        }
 
-    // Format content if present
-    if (typeof payload.content === 'string') {
-        payload.content = formatEmojisInString(payload.content, client, guild);
-    }
-
-    // Format embeds array if present
-    if (Array.isArray(payload.embeds)) {
-        for (const embed of payload.embeds) {
-            if (embed && embed.data) {
-                formatEmbedData(embed.data, client, guild);
-            } else if (embed && typeof embed === 'object') {
-                formatEmbedData(embed, client, guild);
+        // Format embeds array if present
+        if (Array.isArray(resPayload.embeds)) {
+            for (const embed of resPayload.embeds) {
+                if (embed && embed.data) {
+                    formatEmbedData(embed.data, client, guild);
+                } else if (embed && typeof embed === 'object') {
+                    formatEmbedData(embed, client, guild);
+                }
             }
         }
     }
 
-    return payload;
+    // Disable pinging actual users or roles for all command output payloads
+    if (typeof resPayload === 'object' && resPayload !== null) {
+        if (!resPayload.allowedMentions) {
+            resPayload.allowedMentions = { parse: [], users: [], roles: [], repliedUser: false };
+        }
+    }
+
+    return resPayload;
 }
 
 /**
@@ -154,7 +166,8 @@ function wrapMessage(message) {
 }
 
 /**
- * Wraps an interaction instance so reply, editReply, followUp, and update automatically resolve emojis.
+ * Wraps an interaction instance so reply, editReply, followUp, update, and deferReply
+ * automatically resolve emojis, disable user/role pings, and respect the 'ephemeral' option (default: true).
  * @param {import('discord.js').BaseInteraction} interaction 
  */
 function wrapInteraction(interaction) {
@@ -164,10 +177,47 @@ function wrapInteraction(interaction) {
     const client = interaction.client;
     const guild = interaction.guild;
 
+    // Check if the command options specify 'ephemeral' (default: true)
+    let isEphemeral = true;
+    if (interaction.options && typeof interaction.options.getBoolean === 'function') {
+        const ephemOpt = interaction.options.getBoolean('ephemeral');
+        if (ephemOpt === false) {
+            isEphemeral = false;
+        }
+    }
+
+    function applyEphemeralSetting(options) {
+        if (!options || typeof options !== 'object') return options;
+        if (!isEphemeral) {
+            if (typeof options.flags === 'number') {
+                options.flags &= ~MessageFlags.Ephemeral;
+                if (options.flags === 0) delete options.flags;
+            }
+            options.ephemeral = false;
+        } else {
+            options.flags = (options.flags || 0) | MessageFlags.Ephemeral;
+            options.ephemeral = true;
+        }
+        return options;
+    }
+
+    if (typeof interaction.deferReply === 'function') {
+        const origDefer = interaction.deferReply.bind(interaction);
+        interaction.deferReply = async function (options = {}) {
+            let opts = typeof options === 'object' && options ? { ...options } : {};
+            opts = applyEphemeralSetting(opts);
+            return await origDefer(opts);
+        };
+    }
+
     if (typeof interaction.reply === 'function') {
         const origReply = interaction.reply.bind(interaction);
         interaction.reply = async function (options) {
-            const res = await origReply(formatPayload(options, client, guild));
+            let formatted = formatPayload(options, client, guild);
+            if (formatted && typeof formatted === 'object') {
+                formatted = applyEphemeralSetting(formatted);
+            }
+            const res = await origReply(formatted);
             return wrapMessage(res);
         };
     }
@@ -183,7 +233,11 @@ function wrapInteraction(interaction) {
     if (typeof interaction.followUp === 'function') {
         const origFollowUp = interaction.followUp.bind(interaction);
         interaction.followUp = async function (options) {
-            const res = await origFollowUp(formatPayload(options, client, guild));
+            let formatted = formatPayload(options, client, guild);
+            if (formatted && typeof formatted === 'object') {
+                formatted = applyEphemeralSetting(formatted);
+            }
+            const res = await origFollowUp(formatted);
             return wrapMessage(res);
         };
     }

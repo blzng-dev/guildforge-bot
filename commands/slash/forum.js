@@ -210,6 +210,12 @@ module.exports = {
                                 .setDescription("only moderators can apply this tag (default false)")
                                 .setRequired(false)
                         )
+                        .addBooleanOption((option) =>
+                            option
+                                .setName("ephemeral")
+                                .setDescription("Whether the response should be ephemeral (default: true)")
+                                .setRequired(false)
+                        )
                 )
                 .addSubcommand((subcommand) =>
                     subcommand
@@ -229,6 +235,12 @@ module.exports = {
                                 .setRequired(true)
                                 .setAutocomplete(true)
                         )
+                        .addBooleanOption((option) =>
+                            option
+                                .setName("ephemeral")
+                                .setDescription("Whether the response should be ephemeral (default: true)")
+                                .setRequired(false)
+                        )
                 )
                 .addSubcommand((subcommand) =>
                     subcommand
@@ -240,6 +252,12 @@ module.exports = {
                                 .setDescription("the forum channel")
                                 .setRequired(true)
                                 .addChannelTypes(ChannelType.GuildForum)
+                        )
+                        .addBooleanOption((option) =>
+                            option
+                                .setName("ephemeral")
+                                .setDescription("Whether the response should be ephemeral (default: true)")
+                                .setRequired(false)
                         )
                 )
         )
@@ -294,6 +312,12 @@ module.exports = {
                                 .setDescription("require users to select at least one tag before posting")
                                 .setRequired(false)
                         )
+                        .addBooleanOption((option) =>
+                            option
+                                .setName("ephemeral")
+                                .setDescription("Whether the response should be ephemeral (default: true)")
+                                .setRequired(false)
+                        )
                 )
                 .addSubcommand((subcommand) =>
                     subcommand
@@ -312,6 +336,12 @@ module.exports = {
                                 .setDescription("the guidelines text (channel topic)")
                                 .setMaxLength(4096)
                                 .setRequired(true)
+                        )
+                        .addBooleanOption((option) =>
+                            option
+                                .setName("ephemeral")
+                                .setDescription("Whether the response should be ephemeral (default: true)")
+                                .setRequired(false)
                         )
                 )
         )
@@ -340,6 +370,12 @@ module.exports = {
                                 .setDescription("also lock the thread (default false)")
                                 .setRequired(false)
                         )
+                        .addBooleanOption((option) =>
+                            option
+                                .setName("ephemeral")
+                                .setDescription("Whether the response should be ephemeral (default: true)")
+                                .setRequired(false)
+                        )
                 )
                 .addSubcommand((subcommand) =>
                     subcommand
@@ -351,6 +387,12 @@ module.exports = {
                                 .setDescription("the forum post to open (defaults to current post)")
                                 .setRequired(false)
                                 .addChannelTypes(ChannelType.PublicThread, ChannelType.PrivateThread)
+                        )
+                        .addBooleanOption((option) =>
+                            option
+                                .setName("ephemeral")
+                                .setDescription("Whether the response should be ephemeral (default: true)")
+                                .setRequired(false)
                         )
                 )
                 .addSubcommand((subcommand) =>
@@ -380,6 +422,12 @@ module.exports = {
                                 .setDescription("optional reason for audit logs")
                                 .setRequired(false)
                         )
+                        .addBooleanOption((option) =>
+                            option
+                                .setName("ephemeral")
+                                .setDescription("Whether the response should be ephemeral (default: true)")
+                                .setRequired(false)
+                        )
                 )
                 .addSubcommand((subcommand) =>
                     subcommand
@@ -401,6 +449,12 @@ module.exports = {
                                 .setDescription("the forum post (defaults to current post)")
                                 .setRequired(false)
                                 .addChannelTypes(ChannelType.PublicThread, ChannelType.PrivateThread)
+                        )
+                        .addBooleanOption((option) =>
+                            option
+                                .setName("ephemeral")
+                                .setDescription("Whether the response should be ephemeral (default: true)")
+                                .setRequired(false)
                         )
                 )
                 .addSubcommand((subcommand) =>
@@ -431,6 +485,12 @@ module.exports = {
                                 .setRequired(false)
                                 .addChannelTypes(ChannelType.PublicThread, ChannelType.PrivateThread)
                         )
+                        .addBooleanOption((option) =>
+                            option
+                                .setName("ephemeral")
+                                .setDescription("Whether the response should be ephemeral (default: true)")
+                                .setRequired(false)
+                        )
                 )
         )
 
@@ -459,6 +519,12 @@ module.exports = {
                                 .setRequired(false)
                                 .setAutocomplete(true)
                         )
+                        .addBooleanOption((option) =>
+                            option
+                                .setName("ephemeral")
+                                .setDescription("Whether the response should be ephemeral (default: true)")
+                                .setRequired(false)
+                        )
                 )
                 .addSubcommand((subcommand) =>
                     subcommand
@@ -477,6 +543,12 @@ module.exports = {
                                 .setDescription("optional tag to filter posts by")
                                 .setRequired(false)
                                 .setAutocomplete(true)
+                        )
+                        .addBooleanOption((option) =>
+                            option
+                                .setName("ephemeral")
+                                .setDescription("Whether the response should be ephemeral (default: true)")
+                                .setRequired(false)
                         )
                 )
                 .addSubcommand((subcommand) =>
@@ -497,6 +569,12 @@ module.exports = {
                                 .setRequired(false)
                                 .setAutocomplete(true)
                         )
+                        .addBooleanOption((option) =>
+                            option
+                                .setName("ephemeral")
+                                .setDescription("Whether the response should be ephemeral (default: true)")
+                                .setRequired(false)
+                        )
                 )
                 .addSubcommand((subcommand) =>
                     subcommand
@@ -515,6 +593,12 @@ module.exports = {
                                 .setDescription("optional tag to filter posts by")
                                 .setRequired(false)
                                 .setAutocomplete(true)
+                        )
+                        .addBooleanOption((option) =>
+                            option
+                                .setName("ephemeral")
+                                .setDescription("Whether the response should be ephemeral (default: true)")
+                                .setRequired(false)
                         )
                 )
                 .addSubcommand((subcommand) =>
@@ -541,6 +625,12 @@ module.exports = {
                                 .setDescription("optional tag to filter which posts get the new tag")
                                 .setRequired(false)
                                 .setAutocomplete(true)
+                        )
+                        .addBooleanOption((option) =>
+                            option
+                                .setName("ephemeral")
+                                .setDescription("Whether the response should be ephemeral (default: true)")
+                                .setRequired(false)
                         )
                 )
         ),

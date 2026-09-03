@@ -34,7 +34,11 @@ module.exports = {
         .addStringOption(option =>
             option.setName('command')
                 .setDescription('the command to reload')
-                .setRequired(true)),
+                .setRequired(true))
+        .addBooleanOption(option =>
+            option.setName('ephemeral')
+                .setDescription('Whether the response should be ephemeral (default: true)')
+                .setRequired(false)),
     async execute(interaction) {
         const commandName = interaction.options.getString('command', true).toLowerCase();
 

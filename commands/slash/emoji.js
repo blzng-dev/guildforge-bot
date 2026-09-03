@@ -113,6 +113,10 @@ module.exports = {
                     option.setName('link')
                         .setDescription('A direct link to an image/gif')
                         .setRequired(false))
+                .addBooleanOption(option =>
+                    option.setName('ephemeral')
+                        .setDescription('Whether the response should be ephemeral (default: true)')
+                        .setRequired(false))
         )
         .addSubcommand(subcommand =>
             subcommand
@@ -127,6 +131,10 @@ module.exports = {
                             { name: 'Animated Only', value: 'animated' },
                             { name: 'Static Only', value: 'static' }
                         ))
+                .addBooleanOption(option =>
+                    option.setName('ephemeral')
+                        .setDescription('Whether the response should be ephemeral (default: true)')
+                        .setRequired(false))
         )
         .addSubcommand(subcommand =>
             subcommand
@@ -137,6 +145,10 @@ module.exports = {
                         .setDescription('The custom emoji to delete')
                         .setRequired(true)
                         .setAutocomplete(true))
+                .addBooleanOption(option =>
+                    option.setName('ephemeral')
+                        .setDescription('Whether the response should be ephemeral (default: true)')
+                        .setRequired(false))
         )
         .addSubcommand(subcommand =>
             subcommand
@@ -151,6 +163,10 @@ module.exports = {
                     option.setName('new_name')
                         .setDescription('The new name for the emoji')
                         .setRequired(true))
+                .addBooleanOption(option =>
+                    option.setName('ephemeral')
+                        .setDescription('Whether the response should be ephemeral (default: true)')
+                        .setRequired(false))
         )
         .addSubcommand(subcommand =>
             subcommand
@@ -161,6 +177,10 @@ module.exports = {
                         .setDescription('The custom emoji to view')
                         .setRequired(true)
                         .setAutocomplete(true))
+                .addBooleanOption(option =>
+                    option.setName('ephemeral')
+                        .setDescription('Whether the response should be ephemeral (default: true)')
+                        .setRequired(false))
         )
         .addSubcommandGroup(group =>
             group
@@ -174,6 +194,10 @@ module.exports = {
                             option.setName('emojis')
                                 .setDescription('A string containing multiple custom emojis')
                                 .setRequired(true))
+                        .addBooleanOption(option =>
+                            option.setName('ephemeral')
+                                .setDescription('Whether the response should be ephemeral (default: true)')
+                                .setRequired(false))
                 )
                 .addSubcommand(subcommand =>
                     subcommand
@@ -183,6 +207,10 @@ module.exports = {
                             option.setName('emojis')
                                 .setDescription('A string containing multiple custom emojis')
                                 .setRequired(true))
+                        .addBooleanOption(option =>
+                            option.setName('ephemeral')
+                                .setDescription('Whether the response should be ephemeral (default: true)')
+                                .setRequired(false))
                 )
         ),
         

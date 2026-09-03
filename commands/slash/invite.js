@@ -38,6 +38,12 @@ module.exports = {
                 .setName("self")
                 .setDescription("show invite for this bot only")
                 .setRequired(true),
+        )
+        .addBooleanOption((option) =>
+            option
+                .setName("ephemeral")
+                .setDescription("Whether the response should be ephemeral (default: true)")
+                .setRequired(false),
         ),
 
     async execute(interaction) {

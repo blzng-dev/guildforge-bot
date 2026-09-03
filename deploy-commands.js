@@ -9,6 +9,48 @@ const commands = [];
 const foldersPath = path.join(__dirname, "commands");
 const commandFolders = fs.readdirSync(foldersPath);
 
+const EPHEMERAL_OPTION = {
+    type: 5, // Boolean option type
+    name: "ephemeral",
+    description: "Whether the response should be ephemeral (default: true)",
+    required: false,
+};
+
+function ensureEphemeralInOptions(optionsArray) {
+    if (!Array.isArray(optionsArray)) return;
+    const hasSubcommands = optionsArray.some(opt => opt.type === 1 || opt.type === 2);
+    if (hasSubcommands) {
+        for (const opt of optionsArray) {
+            if (opt.type === 1) {
+                if (!Array.isArray(opt.options)) opt.options = [];
+                ensureEphemeralInOptions(opt.options);
+            } else if (opt.type === 2) {
+                if (Array.isArray(opt.options)) {
+                    for (const subOpt of opt.options) {
+                        if (subOpt.type === 1) {
+                            if (!Array.isArray(subOpt.options)) subOpt.options = [];
+                            ensureEphemeralInOptions(subOpt.options);
+                        }
+                    }
+                }
+            }
+        }
+    } else {
+        if (!optionsArray.some(opt => opt.name === "ephemeral")) {
+            optionsArray.push(EPHEMERAL_OPTION);
+        }
+    }
+}
+
+function processCommandJson(cmdJson) {
+    if (cmdJson.type && cmdJson.type !== 1) {
+        return cmdJson;
+    }
+    if (!Array.isArray(cmdJson.options)) cmdJson.options = [];
+    ensureEphemeralInOptions(cmdJson.options);
+    return cmdJson;
+}
+
 for (const folder of commandFolders) {
     const currentPath = path.join(foldersPath, folder);
     // Check if the item is a directory before proceeding
@@ -23,7 +65,7 @@ for (const folder of commandFolders) {
             const filePath = path.join(commandsPath, file);
             const command = require(filePath);
             if ("data" in command && "execute" in command) {
-                commands.push(command.data.toJSON());
+                commands.push(processCommandJson(command.data.toJSON()));
             } else {
                 console.log(
                     `[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`

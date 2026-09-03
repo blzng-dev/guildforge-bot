@@ -25,7 +25,11 @@ module.exports = {
     category: 'slash',
     data: new SlashCommandBuilder()
         .setName('ping')
-        .setDescription('replies with pong'),
+        .setDescription('replies with pong')
+        .addBooleanOption(option =>
+            option.setName('ephemeral')
+                .setDescription('Whether the response should be ephemeral (default: true)')
+                .setRequired(false)),
     async execute(interaction) {
         await interaction.reply({ content: getMessage('ping.success'), flags: MessageFlags.Ephemeral });
     },

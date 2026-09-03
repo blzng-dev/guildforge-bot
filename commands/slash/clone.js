@@ -193,6 +193,7 @@ module.exports = {
                 .addBooleanOption((option) => option.setName("copy_permissions").setDescription("Copy role/user permissions (default true)").setRequired(false))
                 .addStringOption((option) => option.setName("target_server_id").setDescription("ID of target server for cross-server cloning").setRequired(false))
                 .addStringOption((option) => option.setName("target_category_id").setDescription("ID of category to place the cloned channel in").setRequired(false))
+                .addBooleanOption((option) => option.setName("ephemeral").setDescription("Whether the response should be ephemeral (default: true)").setRequired(false))
         )
         .addSubcommand((subcommand) =>
             subcommand
@@ -206,6 +207,7 @@ module.exports = {
                 .addBooleanOption((option) => option.setName("copy_tags").setDescription("Copy tags (default true)").setRequired(false))
                 .addBooleanOption((option) => option.setName("clone_posts").setDescription("Clone posts (default false)").setRequired(false))
                 .addBooleanOption((option) => option.setName("clone_post_description").setDescription("Clone post descriptions (default true)").setRequired(false))
+                .addBooleanOption((option) => option.setName("ephemeral").setDescription("Whether the response should be ephemeral (default: true)").setRequired(false))
         )
         .addSubcommand((subcommand) =>
             subcommand
@@ -217,6 +219,7 @@ module.exports = {
                 .addStringOption((option) => option.setName("target_server_id").setDescription("ID of target server for cross-server cloning").setRequired(false))
                 .addBooleanOption((option) => option.setName("clone_posts").setDescription("Clone posts in forum channels (default false)").setRequired(false))
                 .addBooleanOption((option) => option.setName("clone_post_description").setDescription("Clone post descriptions (default true)").setRequired(false))
+                .addBooleanOption((option) => option.setName("ephemeral").setDescription("Whether the response should be ephemeral (default: true)").setRequired(false))
         )
         .addSubcommand((subcommand) =>
             subcommand
@@ -226,6 +229,7 @@ module.exports = {
                 .addBooleanOption((option) => option.setName("clone_roles").setDescription("Clone roles and map permissions (default false)").setRequired(false))
                 .addBooleanOption((option) => option.setName("clone_posts").setDescription("Clone posts in forum channels (default false)").setRequired(false))
                 .addBooleanOption((option) => option.setName("clone_post_description").setDescription("Clone post descriptions (default true)").setRequired(false))
+                .addBooleanOption((option) => option.setName("ephemeral").setDescription("Whether the response should be ephemeral (default: true)").setRequired(false))
         ),
     async execute(interaction) {
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });

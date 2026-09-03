@@ -83,6 +83,12 @@ module.exports = {
                         .addChannelTypes(ChannelType.GuildText)
                         .setRequired(false)
                 )
+                .addBooleanOption((option) =>
+                    option
+                        .setName("ephemeral")
+                        .setDescription("Whether the response should be ephemeral (default: true)")
+                        .setRequired(false)
+                )
         )
         .addSubcommand((subcommand) =>
             subcommand
@@ -101,6 +107,12 @@ module.exports = {
                             { name: "Highest (Verified Phone)", value: 4 }
                         )
                 )
+                .addBooleanOption((option) =>
+                    option
+                        .setName("ephemeral")
+                        .setDescription("Whether the response should be ephemeral (default: true)")
+                        .setRequired(false)
+                )
         )
         .addSubcommandGroup((group) =>
             group
@@ -117,11 +129,23 @@ module.exports = {
                                 .addChannelTypes(ChannelType.GuildText)
                                 .setRequired(true)
                         )
+                        .addBooleanOption((option) =>
+                            option
+                                .setName("ephemeral")
+                                .setDescription("Whether the response should be ephemeral (default: true)")
+                                .setRequired(false)
+                        )
                 )
                 .addSubcommand((subcommand) =>
                     subcommand
                         .setName("disable")
                         .setDescription("disable audit logging")
+                        .addBooleanOption((option) =>
+                            option
+                                .setName("ephemeral")
+                                .setDescription("Whether the response should be ephemeral (default: true)")
+                                .setRequired(false)
+                        )
                 )
         ),
 

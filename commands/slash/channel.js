@@ -225,13 +225,13 @@ module.exports = {
   data: new SlashCommandBuilder().setName("channel").setDescription("manage server channels (create, preset, settings, etc.)").setDefaultMemberPermissions(PermissionsBitField.Flags.ManageGuild).setDMPermission(false)
 
   // --- CREATE-BULK SUBCOMMAND ---
-  .addSubcommand(subcommand => subcommand.setName("create-bulk").setDescription("create multiple channels via modal").addStringOption(option => option.setName("category").setDescription("parent category (start typing...)").setRequired(false).setAutocomplete(true)))
+  .addSubcommand(subcommand => subcommand.setName("create-bulk").setDescription("create multiple channels via modal").addStringOption(option => option.setName("category").setDescription("parent category (start typing...)").setRequired(false).setAutocomplete(true)).addBooleanOption(option => option.setName("ephemeral").setDescription("Whether the response should be ephemeral (default: true)").setRequired(false)))
 
-  // --- Preset Subcommand ---\
+  // --- Preset Subcommand ---
   .addSubcommand(subcommand => subcommand.setName("preset").setDescription("creates channels from a template").addStringOption(option => option.setName("preset_name").setDescription("the preset template to use").setRequired(true).addChoices({
     name: "General Server Setup",
     value: "general"
-  })))
+  })).addBooleanOption(option => option.setName("ephemeral").setDescription("Whether the response should be ephemeral (default: true)").setRequired(false)))
 
   // --- Create Subcommand ---
   .addSubcommand(subcommand => subcommand.setName("create").setDescription("create a new channel").addStringOption(option => option.setName("name").setDescription("name for the new channel").setRequired(true)).addIntegerOption(option => option.setName("type").setDescription("type of channel to create").setRequired(true).addChoices({
@@ -255,7 +255,7 @@ module.exports = {
   }, {
     name: "media",
     value: ChannelType.GuildMedia
-  })).addStringOption(option => option.setName("category").setDescription("parent category (start typing...)").setRequired(false).setAutocomplete(true)).addStringOption(option => option.setName("description").setDescription("topic or description").setRequired(false)).addBooleanOption(option => option.setName("readonly").setDescription("make read-only for everyone").setRequired(false)))
+  })).addStringOption(option => option.setName("category").setDescription("parent category (start typing...)").setRequired(false).setAutocomplete(true)).addStringOption(option => option.setName("description").setDescription("topic or description").setRequired(false)).addBooleanOption(option => option.setName("readonly").setDescription("make read-only for everyone").setRequired(false)).addBooleanOption(option => option.setName("ephemeral").setDescription("Whether the response should be ephemeral (default: true)").setRequired(false)))
 
   // --- Manage Subcommand ---
   .addSubcommand(subcommand => {
@@ -267,20 +267,21 @@ module.exports = {
       const flagName = Object.keys(PermissionFlagsBits).find(key => PermissionFlagsBits[key] === flagBit) || optionName;
       subcommand.addStringOption(option => option.setName(optionName).setDescription(`set permission: ${flagName}`).setRequired(false).addChoices(...permissionChoices));
     }
+    subcommand.addBooleanOption(option => option.setName("ephemeral").setDescription("Whether the response should be ephemeral (default: true)").setRequired(false));
     return subcommand;
   })
 
   // --- Sync Subcommand ---
-  .addSubcommand(subcommand => subcommand.setName("sync").setDescription("sync permissions from category").addChannelOption(option => option.setName("category").setDescription("the category to sync permissions from").setRequired(true).addChannelTypes(ChannelType.GuildCategory)))
+  .addSubcommand(subcommand => subcommand.setName("sync").setDescription("sync permissions from category").addChannelOption(option => option.setName("category").setDescription("the category to sync permissions from").setRequired(true).addChannelTypes(ChannelType.GuildCategory)).addBooleanOption(option => option.setName("ephemeral").setDescription("Whether the response should be ephemeral (default: true)").setRequired(false)))
 
   // --- Delete Subcommand ---
-  .addSubcommand(subcommand => subcommand.setName("delete").setDescription("delete channels").addChannelOption(option => option.setName("channel").setDescription("channel to delete (leave empty for multiple)").setRequired(false)).addBooleanOption(option => option.setName("delete_all").setDescription("delete all channels in category").setRequired(false)))
+  .addSubcommand(subcommand => subcommand.setName("delete").setDescription("delete channels").addChannelOption(option => option.setName("channel").setDescription("channel to delete (leave empty for multiple)").setRequired(false)).addBooleanOption(option => option.setName("delete_all").setDescription("delete all channels in category").setRequired(false)).addBooleanOption(option => option.setName("ephemeral").setDescription("Whether the response should be ephemeral (default: true)").setRequired(false)))
 
   // --- Clear Subcommand ---
-  .addSubcommand(subcommand => subcommand.setName("clear").setDescription("clear permission overwrites").addChannelOption(option => option.setName("channel").setDescription("channel to clear (leave empty for multiple)").setRequired(false)))
+  .addSubcommand(subcommand => subcommand.setName("clear").setDescription("clear permission overwrites").addChannelOption(option => option.setName("channel").setDescription("channel to clear (leave empty for multiple)").setRequired(false)).addBooleanOption(option => option.setName("ephemeral").setDescription("Whether the response should be ephemeral (default: true)").setRequired(false)))
 
   // --- Divider Subcommand Group ---
-  .addSubcommandGroup(group => group.setName("divider").setDescription("adds a divider prefix to channel names").addSubcommand(subcommand => subcommand.setName("server").setDescription("apply divider to all channels in server").addStringOption(option => option.setName("divider_type").setDescription("the divider symbol to use").setRequired(true).addChoices(...DIVIDER_CHOICES)).addStringOption(option => option.setName("custom_divider").setDescription("custom divider symbol").setRequired(false))).addSubcommand(subcommand => subcommand.setName("category").setDescription("apply divider to channels in a category").addStringOption(option => option.setName("target_category").setDescription("the category to apply dividers within").setRequired(true).setAutocomplete(true)).addStringOption(option => option.setName("divider_type").setDescription("the divider symbol to use").setRequired(true).addChoices(...DIVIDER_CHOICES)).addStringOption(option => option.setName("custom_divider").setDescription("custom divider symbol").setRequired(false))).addSubcommand(subcommand => subcommand.setName("channel").setDescription("apply divider to a specific channel").addChannelOption(option => option.setName("target_channel").setDescription("the channel to apply the divider to").setRequired(true)).addStringOption(option => option.setName("divider_type").setDescription("the divider symbol to use").setRequired(true).addChoices(...DIVIDER_CHOICES)).addStringOption(option => option.setName("custom_divider").setDescription("custom divider symbol").setRequired(false)))),
+  .addSubcommandGroup(group => group.setName("divider").setDescription("adds a divider prefix to channel names").addSubcommand(subcommand => subcommand.setName("server").setDescription("apply divider to all channels in server").addStringOption(option => option.setName("divider_type").setDescription("the divider symbol to use").setRequired(true).addChoices(...DIVIDER_CHOICES)).addStringOption(option => option.setName("custom_divider").setDescription("custom divider symbol").setRequired(false)).addBooleanOption(option => option.setName("ephemeral").setDescription("Whether the response should be ephemeral (default: true)").setRequired(false))).addSubcommand(subcommand => subcommand.setName("category").setDescription("apply divider to channels in a category").addStringOption(option => option.setName("target_category").setDescription("the category to apply dividers within").setRequired(true).setAutocomplete(true)).addStringOption(option => option.setName("divider_type").setDescription("the divider symbol to use").setRequired(true).addChoices(...DIVIDER_CHOICES)).addStringOption(option => option.setName("custom_divider").setDescription("custom divider symbol").setRequired(false)).addBooleanOption(option => option.setName("ephemeral").setDescription("Whether the response should be ephemeral (default: true)").setRequired(false))).addSubcommand(subcommand => subcommand.setName("channel").setDescription("apply divider to a specific channel").addChannelOption(option => option.setName("target_channel").setDescription("the channel to apply the divider to").setRequired(true)).addStringOption(option => option.setName("divider_type").setDescription("the divider symbol to use").setRequired(true).addChoices(...DIVIDER_CHOICES)).addStringOption(option => option.setName("custom_divider").setDescription("custom divider symbol").setRequired(false)).addBooleanOption(option => option.setName("ephemeral").setDescription("Whether the response should be ephemeral (default: true)").setRequired(false)))),
   // --- Execute Function ---
   async execute(interaction) {
     if (!interaction.memberPermissions.has(PermissionsBitField.Flags.ManageGuild)) {

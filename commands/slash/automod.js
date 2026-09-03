@@ -266,6 +266,14 @@ module.exports = {
                                 )
                                 .setRequired(false)
                                 .setAutocomplete(true),
+                        )
+                        .addBooleanOption((opt) =>
+                            opt
+                                .setName("ephemeral")
+                                .setDescription(
+                                    "Whether the response should be ephemeral (default: true)",
+                                )
+                                .setRequired(false),
                         ),
                 )
                 .addSubcommand((sub) =>
@@ -279,6 +287,14 @@ module.exports = {
                                 .setName("name")
                                 .setDescription("Name for the custom rule")
                                 .setRequired(true),
+                        )
+                        .addBooleanOption((opt) =>
+                            opt
+                                .setName("ephemeral")
+                                .setDescription(
+                                    "Whether the response should be ephemeral (default: true)",
+                                )
+                                .setRequired(false),
                         ),
                 )
                 .addSubcommand((sub) =>
@@ -293,6 +309,14 @@ module.exports = {
                                 .setDescription("Target rule to enable")
                                 .setRequired(true)
                                 .setAutocomplete(true),
+                        )
+                        .addBooleanOption((opt) =>
+                            opt
+                                .setName("ephemeral")
+                                .setDescription(
+                                    "Whether the response should be ephemeral (default: true)",
+                                )
+                                .setRequired(false),
                         ),
                 )
                 .addSubcommand((sub) =>
@@ -307,6 +331,14 @@ module.exports = {
                                 .setDescription("Target rule to disable")
                                 .setRequired(true)
                                 .setAutocomplete(true),
+                        )
+                        .addBooleanOption((opt) =>
+                            opt
+                                .setName("ephemeral")
+                                .setDescription(
+                                    "Whether the response should be ephemeral (default: true)",
+                                )
+                                .setRequired(false),
                         ),
                 )
                 .addSubcommand((sub) =>
@@ -395,6 +427,14 @@ module.exports = {
                                     "Explanation note shown to user when blocked",
                                 )
                                 .setRequired(false),
+                        )
+                        .addBooleanOption((opt) =>
+                            opt
+                                .setName("ephemeral")
+                                .setDescription(
+                                    "Whether the response should be ephemeral (default: true)",
+                                )
+                                .setRequired(false),
                         ),
                 )
                 .addSubcommand((sub) =>
@@ -409,6 +449,14 @@ module.exports = {
                                 .setDescription("Target rule")
                                 .setRequired(true)
                                 .setAutocomplete(true),
+                        )
+                        .addBooleanOption((opt) =>
+                            opt
+                                .setName("ephemeral")
+                                .setDescription(
+                                    "Whether the response should be ephemeral (default: true)",
+                                )
+                                .setRequired(false),
                         ),
                 ),
         )
@@ -436,6 +484,14 @@ module.exports = {
                                     "Keyword or comma-separated keywords to block (use * for wildcards)",
                                 )
                                 .setRequired(true),
+                        )
+                        .addBooleanOption((opt) =>
+                            opt
+                                .setName("ephemeral")
+                                .setDescription(
+                                    "Whether the response should be ephemeral (default: true)",
+                                )
+                                .setRequired(false),
                         ),
                 )
                 .addSubcommand((sub) =>
@@ -461,6 +517,14 @@ module.exports = {
                                 .setName("new")
                                 .setDescription("New replacement keyword")
                                 .setRequired(true),
+                        )
+                        .addBooleanOption((opt) =>
+                            opt
+                                .setName("ephemeral")
+                                .setDescription(
+                                    "Whether the response should be ephemeral (default: true)",
+                                )
+                                .setRequired(false),
                         ),
                 )
                 .addSubcommand((sub) =>
@@ -480,6 +544,14 @@ module.exports = {
                                 .setDescription("Keyword to delete")
                                 .setRequired(true)
                                 .setAutocomplete(true),
+                        )
+                        .addBooleanOption((opt) =>
+                            opt
+                                .setName("ephemeral")
+                                .setDescription(
+                                    "Whether the response should be ephemeral (default: true)",
+                                )
+                                .setRequired(false),
                         ),
                 ),
         )
@@ -507,6 +579,14 @@ module.exports = {
                                     "Phrase or comma-separated phrases to bypass",
                                 )
                                 .setRequired(true),
+                        )
+                        .addBooleanOption((opt) =>
+                            opt
+                                .setName("ephemeral")
+                                .setDescription(
+                                    "Whether the response should be ephemeral (default: true)",
+                                )
+                                .setRequired(false),
                         ),
                 )
                 .addSubcommand((sub) =>
@@ -538,6 +618,14 @@ module.exports = {
                                     "New replacement whitelist phrase",
                                 )
                                 .setRequired(true),
+                        )
+                        .addBooleanOption((opt) =>
+                            opt
+                                .setName("ephemeral")
+                                .setDescription(
+                                    "Whether the response should be ephemeral (default: true)",
+                                )
+                                .setRequired(false),
                         ),
                 )
                 .addSubcommand((sub) =>
@@ -557,6 +645,14 @@ module.exports = {
                                 .setDescription("Whitelist phrase to delete")
                                 .setRequired(true)
                                 .setAutocomplete(true),
+                        )
+                        .addBooleanOption((opt) =>
+                            opt
+                                .setName("ephemeral")
+                                .setDescription(
+                                    "Whether the response should be ephemeral (default: true)",
+                                )
+                                .setRequired(false),
                         ),
                 ),
         )
@@ -586,6 +682,14 @@ module.exports = {
                                     "Regex pattern (max 260 characters)",
                                 )
                                 .setRequired(true),
+                        )
+                        .addBooleanOption((opt) =>
+                            opt
+                                .setName("ephemeral")
+                                .setDescription(
+                                    "Whether the response should be ephemeral (default: true)",
+                                )
+                                .setRequired(false),
                         ),
                 )
                 .addSubcommand((sub) =>
@@ -617,6 +721,14 @@ module.exports = {
                                     "New regex pattern (max 260 characters)",
                                 )
                                 .setRequired(true),
+                        )
+                        .addBooleanOption((opt) =>
+                            opt
+                                .setName("ephemeral")
+                                .setDescription(
+                                    "Whether the response should be ephemeral (default: true)",
+                                )
+                                .setRequired(false),
                         ),
                 )
                 .addSubcommand((sub) =>
@@ -636,6 +748,14 @@ module.exports = {
                                 .setDescription("Regex pattern to delete")
                                 .setRequired(true)
                                 .setAutocomplete(true),
+                        )
+                        .addBooleanOption((opt) =>
+                            opt
+                                .setName("ephemeral")
+                                .setDescription(
+                                    "Whether the response should be ephemeral (default: true)",
+                                )
+                                .setRequired(false),
                         ),
                 ),
         ),

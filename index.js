@@ -16,7 +16,10 @@ const {
 const token = process.env.TOKEN;
 
 // Create a new client instance
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers] });
+const client = new Client({
+    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
+    allowedMentions: { parse: [], users: [], roles: [], repliedUser: false },
+});
 
 client.commands = new Collection();
 
