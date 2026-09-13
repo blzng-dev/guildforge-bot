@@ -852,13 +852,17 @@ module.exports = {
           // Create selection rows
           const roleRow = new ActionRowBuilder().addComponents(new RoleSelectMenuBuilder().setCustomId("role-select-menu").setPlaceholder("Select a role to configure permissions for"));
           const userRow = new ActionRowBuilder().addComponents(new UserSelectMenuBuilder().setCustomId("user-select-menu").setPlaceholder("Select a user to configure permissions for"));
+          const selectConfirmRow = new ActionRowBuilder().addComponents(
+              new ButtonBuilder().setCustomId("confirm-manage-selection").setLabel("Confirm Selection").setStyle(ButtonStyle.Primary),
+              new ButtonBuilder().setCustomId("cancel-manage-selection").setLabel("Cancel").setStyle(ButtonStyle.Secondary)
+          );
 
-          // Send message with both selection menus
+          // Send message with both selection menus and confirm button
           const response = await interaction.editReply({
             content: getMessage("channel.msg_21", {
               id: targetChannel.id
             }),
-            components: [roleRow, userRow],
+            components: [roleRow, userRow, selectConfirmRow],
             flags: MessageFlags.Ephemeral
           });
 
@@ -867,52 +871,40 @@ module.exports = {
             filter: i => i.user.id === interaction.user.id,
             time: 60000 // 1 minute timeout
           });
+          
+          let selectedId = null;
+          let selectedName = null;
+          let isUser = false;
+          
           collector.on("collect", async i => {
             await i.deferUpdate();
-            if ((i.componentType === ComponentType.RoleSelect || i.componentType === ComponentType.UserSelect) && i.values.length === 0) {
-              await interaction.editReply({
-                content: getMessage("channel.msg_22"),
-                components: [],
-                flags: MessageFlags.Ephemeral
-              });
-              return collector.stop();
-            }
-            let selectedId,
-              selectedName,
-              isUser = false;
-
-            // Handle role selection
-            if (i.componentType === ComponentType.RoleSelect) {
-              selectedId = i.values[0];
-              const role = interaction.guild.roles.cache.get(selectedId);
-              if (!role) {
-                await interaction.editReply({
-                  content: getMessage("channel.msg_23"),
-                  components: [],
-                  flags: MessageFlags.Ephemeral
-                });
-                return collector.stop();
-              }
-              selectedName = role.name;
-            }
-            // Handle user selection
-            else if (i.componentType === ComponentType.UserSelect) {
-              selectedId = i.values[0];
-              const user = await interaction.client.users.fetch(selectedId).catch(() => null);
-              if (!user) {
-                await interaction.editReply({
-                  content: getMessage("channel.msg_24"),
-                  components: [],
-                  flags: MessageFlags.Ephemeral
-                });
-                return collector.stop();
-              }
-              selectedName = user.tag;
-              isUser = true;
-            }
-
-            // Display current permissions and options to change them
-            const currentOverwrites = targetChannel.permissionOverwrites.cache.get(selectedId);
+            
+            if (i.componentType === ComponentType.RoleSelect || i.componentType === ComponentType.UserSelect) {
+                if (i.values.length > 0) {
+                    selectedId = i.values[0];
+                    if (i.componentType === ComponentType.RoleSelect) {
+                        const role = interaction.guild.roles.cache.get(selectedId);
+                        selectedName = role ? role.name : "Unknown Role";
+                        isUser = false;
+                    } else if (i.componentType === ComponentType.UserSelect) {
+                        const user = await interaction.client.users.fetch(selectedId).catch(() => null);
+                        selectedName = user ? user.tag : "Unknown User";
+                        isUser = true;
+                    }
+                }
+            } else if (i.customId === "confirm-manage-selection") {
+                if (!selectedId) {
+                  await interaction.editReply({
+                    content: getMessage("channel.msg_22"),
+                    components: [],
+                    flags: MessageFlags.Ephemeral
+                  });
+                  return collector.stop();
+                }
+                collector.stop("confirmed");
+                
+                // Display current permissions and options to change them
+                const currentOverwrites = targetChannel.permissionOverwrites.cache.get(selectedId);
             const currentAllowBits = currentOverwrites ? new PermissionsBitField(currentOverwrites.allow) : new PermissionsBitField();
             const currentDenyBits = currentOverwrites ? new PermissionsBitField(currentOverwrites.deny) : new PermissionsBitField();
 
@@ -932,7 +924,14 @@ module.exports = {
               }),
               ephemeral: true
             });
-            collector.stop();
+          } else if (i.customId === "cancel-manage-selection") {
+              await interaction.editReply({
+                content: getMessage("channel.msg_22"),
+                components: [],
+                flags: MessageFlags.Ephemeral
+              });
+              return collector.stop();
+            }
           });
           collector.on("end", (collected, reason) => {
             if (reason === "time" && collected.size === 0) {
@@ -1163,13 +1162,19 @@ module.exports = {
           const row = new ActionRowBuilder().addComponents(new ChannelSelectMenuBuilder().setCustomId("channel-delete-menu").setPlaceholder("Select channels to delete").setMinValues(1).setMaxValues(10) // Allow up to 10 channels at once
           );
 
+          // Add a confirm selection button
+          const selectConfirmRow = new ActionRowBuilder().addComponents(
+              new ButtonBuilder().setCustomId("confirm-channel-selection").setLabel("Confirm Selection").setStyle(ButtonStyle.Primary),
+              new ButtonBuilder().setCustomId("cancel-channel-selection").setLabel("Cancel").setStyle(ButtonStyle.Secondary)
+          );
+
           // Add a confirmation button
           const confirmRow = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId("confirm-delete").setLabel("Confirm Deletion").setStyle(ButtonStyle.Danger), new ButtonBuilder().setCustomId("cancel-delete").setLabel("Cancel").setStyle(ButtonStyle.Secondary));
 
-          // Send message with the channel select menu
+          // Send message with the channel select menu and confirm selection button
           const response = await interaction.editReply({
             content: getMessage("channel.msg_38"),
-            components: [row],
+            components: [row, selectConfirmRow],
             flags: MessageFlags.Ephemeral
           }).catch(err => {
             console.error("Failed to send initial channel delete selection menu:", err);
@@ -1178,39 +1183,51 @@ module.exports = {
 
           // Create collectors
           const channelCollector = response.createMessageComponentCollector({
-            filter: i => i.customId === "channel-delete-menu" && i.user.id === interaction.user.id,
+            filter: i => i.user.id === interaction.user.id,
             time: 60000 // 1 minute timeout
           });
           let selectedChannels = [];
           let selectedChannelObjects = [];
+          
           channelCollector.on("collect", async i => {
             await i.deferUpdate().catch(err => console.error("Failed defer update channel select delete:", err));
-            selectedChannels = i.values;
-            selectedChannelObjects = selectedChannels.map(id => interaction.guild.channels.cache.get(id)).filter(c => c);
+            
+            if (i.customId === "channel-delete-menu") {
+              selectedChannels = i.values;
+            } else if (i.customId === "confirm-channel-selection") {
+              selectedChannelObjects = selectedChannels.map(id => interaction.guild.channels.cache.get(id)).filter(c => c);
 
-            // Check if any channels were selected
-            if (selectedChannels.length === 0) {
+              // Check if any channels were selected
+              if (selectedChannels.length === 0) {
+                await interaction.editReply({
+                  content: getMessage("channel.msg_39"),
+                  components: [],
+                  flags: MessageFlags.Ephemeral
+                }).catch(err => console.error("Failed editReply no channels selected delete:", err));
+                return channelCollector.stop();
+              }
+
+              // Show confirmation with selected channel names
+              const channelNames = selectedChannelObjects.map(ch => `- ${ch.name}`).join("\n");
               await interaction.editReply({
-                content: getMessage("channel.msg_39"),
+                content: getMessage("channel.msg_40", {
+                  length: selectedChannels.length,
+                  channelNames: channelNames
+                }),
+                components: [confirmRow],
+                flags: MessageFlags.Ephemeral
+              }).catch(err => console.error("Failed editReply confirm delete selection:", err));
+
+              // Stop the channel collector as we now need confirmation
+              channelCollector.stop("channels_selected");
+            } else if (i.customId === "cancel-channel-selection") {
+              await interaction.editReply({
+                content: getMessage("channel.msg_42"),
                 components: [],
                 flags: MessageFlags.Ephemeral
-              }).catch(err => console.error("Failed editReply no channels selected delete:", err));
+              });
               return channelCollector.stop();
             }
-
-            // Show confirmation with selected channel names
-            const channelNames = selectedChannelObjects.map(ch => `- ${ch.name}`).join("\n");
-            await interaction.editReply({
-              content: getMessage("channel.msg_40", {
-                length: selectedChannels.length,
-                channelNames: channelNames
-              }),
-              components: [confirmRow],
-              flags: MessageFlags.Ephemeral
-            }).catch(err => console.error("Failed editReply confirm delete selection:", err));
-
-            // Stop the channel collector as we now need confirmation
-            channelCollector.stop("channels_selected");
           });
 
           // When channels are selected, start confirmation collector
@@ -1369,10 +1386,16 @@ module.exports = {
           const row = new ActionRowBuilder().addComponents(new ChannelSelectMenuBuilder().setCustomId("channel-clear-menu").setPlaceholder("Select channels to clear permission overwrites from").setMinValues(1).setMaxValues(10) // Allow up to 10 channels at once
           );
 
-          // Send message with the channel select menu
+          // Add a confirm selection button
+          const selectConfirmRow = new ActionRowBuilder().addComponents(
+              new ButtonBuilder().setCustomId("confirm-channel-clear-selection").setLabel("Confirm Selection").setStyle(ButtonStyle.Primary),
+              new ButtonBuilder().setCustomId("cancel-channel-clear-selection").setLabel("Cancel").setStyle(ButtonStyle.Secondary)
+          );
+
+          // Send message with the channel select menu and confirm selection button
           const response = await interaction.editReply({
             content: getMessage("channel.msg_48"),
-            components: [row],
+            components: [row, selectConfirmRow],
             flags: MessageFlags.Ephemeral
           }).catch(err => {
             console.error("Failed to send channel selection menu:", err);
@@ -1384,24 +1407,52 @@ module.exports = {
             filter: i => i.user.id === interaction.user.id,
             time: 60000,
             // 1 minute timeout
-            componentType: ComponentType.ChannelSelect
           });
+          
+          let selectedChannels = [];
+          
           collector.on("collect", async i => {
             await i.deferUpdate().catch(err => {
               console.error("Failed to defer update in channel select collector:", err);
             });
-            const selectedChannels = i.values;
-            if (selectedChannels.length === 0) {
+            
+            if (i.customId === "channel-clear-menu") {
+              selectedChannels = i.values;
+            } else if (i.customId === "confirm-channel-clear-selection") {
+              if (selectedChannels.length === 0) {
+                await interaction.editReply({
+                  content: getMessage("channel.msg_49"),
+                  components: [],
+                  flags: MessageFlags.Ephemeral
+                }).catch(err => {
+                  console.error("Failed to send no channels selected message:", err);
+                });
+                return collector.stop();
+              }
+              collector.stop("confirmed");
+            } else if (i.customId === "cancel-channel-clear-selection") {
               await interaction.editReply({
-                content: getMessage("channel.msg_49"),
+                content: getMessage("channel.msg_50"), // using timeout/cancel msg
                 components: [],
                 flags: MessageFlags.Ephemeral
-              }).catch(err => {
-                console.error("Failed to send no channels selected message:", err);
               });
-              return collector.stop();
+              return collector.stop("cancelled");
             }
-            collector.stop();
+          });
+          
+          collector.on("end", async (collected, reason) => {
+            if (reason === "cancelled" || reason === "time") {
+                if (reason === "time") {
+                    await interaction.editReply({
+                        content: getMessage("channel.msg_50"),
+                        components: [],
+                        flags: MessageFlags.Ephemeral
+                    }).catch(() => {});
+                }
+                return;
+            }
+            // reason === "confirmed", proceed with logic
+            const i = collected.last();
             const prompt = `Are you sure you want to clear all permission overwrites from ${selectedChannels.length} channel(s)?`;
             const confirmed = await confirmAction(i, prompt);
             if (!confirmed) return;

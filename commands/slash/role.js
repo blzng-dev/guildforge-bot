@@ -228,7 +228,7 @@ module.exports = {
   }, {
     name: "Administrator",
     value: "admin"
-  })).addStringOption(option => option.setName("role_name").setDescription("optional custom name").setRequired(false)).addBooleanOption(option => option.setName("ephemeral").setDescription("Whether the response should be ephemeral (default: true)").setRequired(false))).addSubcommand(subcommand => subcommand.setName("list").setDescription("list server roles").addBooleanOption(option => option.setName("hoisted").setDescription("filter by hoisted roles").setRequired(false)).addBooleanOption(option => option.setName("pingable").setDescription("filter by pingable roles").setRequired(false)).addBooleanOption(option => option.setName("has_admin").setDescription("filter by admin roles").setRequired(false)).addBooleanOption(option => option.setName("ephemeral").setDescription("Whether the response should be ephemeral (default: true)").setRequired(false))).addSubcommand(subcommand => subcommand.setName("color").setDescription("create color roles").addBooleanOption(option => option.setName("ephemeral").setDescription("Whether the response should be ephemeral (default: true)").setRequired(false))).addSubcommand(subcommand => subcommand.setName("scrape").setDescription("scrapes server roles into a json file.").addBooleanOption(option => option.setName("ephemeral").setDescription("Whether the response should be ephemeral (default: true)").setRequired(false))).addSubcommand(subcommand => subcommand.setName("info").setDescription("display role information").addRoleOption(option => option.setName("role").setDescription("the role to get info for").setRequired(true)).addBooleanOption(option => option.setName("ephemeral").setDescription("Whether the response should be ephemeral (default: true)").setRequired(false))).addSubcommand(subcommand => subcommand.setName("export").setDescription("export roles to json").addRoleOption(option => option.setName("target").setDescription("single role to export").setRequired(false)).addRoleOption(option => option.setName("start_role").setDescription("start of role range to export").setRequired(false)).addRoleOption(option => option.setName("end_role").setDescription("end of role range to export").setRequired(false)).addBooleanOption(option => option.setName("ephemeral").setDescription("Whether the response should be ephemeral (default: true)").setRequired(false))).addSubcommand(subcommand => subcommand.setName("import").setDescription("import roles from json").addAttachmentOption(option => option.setName("file").setDescription("the exported json file").setRequired(false)).addBooleanOption(option => option.setName("ephemeral").setDescription("Whether the response should be ephemeral (default: true)").setRequired(false))).addSubcommand(subcommand => subcommand.setName("toggle").setDescription("toggle role for a user").addRoleOption(option => option.setName("role").setDescription("the role to toggle").setRequired(true)).addUserOption(option => option.setName("user").setDescription("the user to toggle the role for").setRequired(true)).addBooleanOption(option => option.setName("ephemeral").setDescription("Whether the response should be ephemeral (default: true)").setRequired(false))).addSubcommand(subcommand => {
+  })).addStringOption(option => option.setName("role_name").setDescription("optional custom name").setRequired(false)).addBooleanOption(option => option.setName("ephemeral").setDescription("Whether the response should be ephemeral (default: true)").setRequired(false))).addSubcommand(subcommand => subcommand.setName("list").setDescription("list server roles").addBooleanOption(option => option.setName("hoisted").setDescription("filter by hoisted roles").setRequired(false)).addBooleanOption(option => option.setName("pingable").setDescription("filter by pingable roles").setRequired(false)).addBooleanOption(option => option.setName("has_admin").setDescription("filter by admin roles").setRequired(false)).addRoleOption(option => option.setName("range_start").setDescription("top role in range").setRequired(false)).addRoleOption(option => option.setName("range_end").setDescription("bottom role in range").setRequired(false)).addBooleanOption(option => option.setName("has_color").setDescription("filter by roles that have color").setRequired(false)).addBooleanOption(option => option.setName("has_gradient").setDescription("filter by gradient colors").setRequired(false)).addBooleanOption(option => option.setName("ephemeral").setDescription("Whether the response should be ephemeral (default: true)").setRequired(false))).addSubcommand(subcommand => subcommand.setName("color").setDescription("create color roles").addBooleanOption(option => option.setName("ephemeral").setDescription("Whether the response should be ephemeral (default: true)").setRequired(false))).addSubcommand(subcommand => subcommand.setName("scrape").setDescription("scrapes server roles into a json file.").addBooleanOption(option => option.setName("ephemeral").setDescription("Whether the response should be ephemeral (default: true)").setRequired(false))).addSubcommand(subcommand => subcommand.setName("info").setDescription("display role information").addRoleOption(option => option.setName("role").setDescription("the role to get info for").setRequired(true)).addBooleanOption(option => option.setName("ephemeral").setDescription("Whether the response should be ephemeral (default: true)").setRequired(false))).addSubcommand(subcommand => subcommand.setName("export").setDescription("export roles to json").addRoleOption(option => option.setName("target").setDescription("single role to export").setRequired(false)).addRoleOption(option => option.setName("start_role").setDescription("start of role range to export").setRequired(false)).addRoleOption(option => option.setName("end_role").setDescription("end of role range to export").setRequired(false)).addBooleanOption(option => option.setName("ephemeral").setDescription("Whether the response should be ephemeral (default: true)").setRequired(false))).addSubcommand(subcommand => subcommand.setName("import").setDescription("import roles from json").addAttachmentOption(option => option.setName("file").setDescription("the exported json file").setRequired(false)).addBooleanOption(option => option.setName("ephemeral").setDescription("Whether the response should be ephemeral (default: true)").setRequired(false))).addSubcommand(subcommand => subcommand.setName("toggle").setDescription("toggle role for a user").addRoleOption(option => option.setName("role").setDescription("the role to toggle").setRequired(true)).addUserOption(option => option.setName("user").setDescription("the user to toggle the role for").setRequired(true)).addBooleanOption(option => option.setName("ephemeral").setDescription("Whether the response should be ephemeral (default: true)").setRequired(false))).addSubcommand(subcommand => {
     subcommand.setName("manage").setDescription("modify role settings and permissions").addRoleOption(option => option.setName("role").setDescription("the role to modify").setRequired(true)).addStringOption(option => option.setName("rename").setDescription("rename the role")).addStringOption(option => option.setName("color").setDescription("hex color code")).addBooleanOption(option => option.setName("hoisted").setDescription("hoist role in member list")).addBooleanOption(option => option.setName("mentionable").setDescription("allow anyone to mention this role"));
     for (const [permName, flagBit] of Object.entries(rolePermissions)) {
       subcommand.addStringOption(option => option.setName(permName).setDescription(`set permission: ${permName.replace(/_/g, " ")}`).addChoices(...permissionChoices));
@@ -489,10 +489,47 @@ module.exports = {
         const hoisted = interaction.options.getBoolean("hoisted");
         const pingable = interaction.options.getBoolean("pingable");
         const hasAdmin = interaction.options.getBoolean("has_admin");
+        const rangeStart = interaction.options.getRole("range_start");
+        const rangeEnd = interaction.options.getRole("range_end");
+        const hasColor = interaction.options.getBoolean("has_color");
+        const hasGradient = interaction.options.getBoolean("has_gradient");
+        
         let roles = interaction.guild.roles.cache;
+        
+        if (rangeStart && rangeEnd) {
+          const pos1 = rangeStart.position;
+          const pos2 = rangeEnd.position;
+          const lowPos = Math.min(pos1, pos2);
+          const highPos = Math.max(pos1, pos2);
+          roles = roles.filter(r => r.position > lowPos && r.position < highPos);
+        }
+        
         if (hoisted !== null) roles = roles.filter(r => r.hoist === hoisted);
         if (pingable !== null) roles = roles.filter(r => r.mentionable === pingable);
         if (hasAdmin !== null) roles = roles.filter(r => r.permissions.has(PermissionsBitField.Flags.Administrator) === hasAdmin);
+
+        if (hasColor !== null) {
+          if (hasColor) {
+            roles = roles.filter(r => r.color !== 0);
+          } else {
+            roles = roles.filter(r => r.color === 0);
+          }
+        }
+        
+        if (hasGradient !== null) {
+          const hasEnhancedStyles = interaction.guild.features.includes("ENHANCED_ROLE_STYLES") || interaction.guild.features.includes("ENHANCED_ROLE_COLORS");
+          if (hasGradient && !hasEnhancedStyles) {
+            return interaction.editReply({
+              content: "This server does not have the Enhanced Role Styles feature enabled.",
+              flags: MessageFlags.Ephemeral
+            });
+          }
+          if (hasGradient) {
+            roles = roles.filter(r => r.colors && (r.colors.secondaryColor !== null && r.colors.secondaryColor !== undefined || r.colors.tertiaryColor !== null && r.colors.tertiaryColor !== undefined));
+          } else {
+            roles = roles.filter(r => !(r.colors && (r.colors.secondaryColor !== null && r.colors.secondaryColor !== undefined || r.colors.tertiaryColor !== null && r.colors.tertiaryColor !== undefined)));
+          }
+        }
 
         // Sort by position descending (highest first) and remove @everyone
         const roleList = roles.filter(role => role.id !== interaction.guild.id).sort((a, b) => b.position - a.position).map(role => `- ${role.toString()}`);
@@ -769,20 +806,65 @@ module.exports = {
       } else {
         // Show role select menu
         const row = new ActionRowBuilder().addComponents(new RoleSelectMenuBuilder().setCustomId("export-role-menu").setPlaceholder("Select roles to export").setMinValues(1).setMaxValues(25));
+        const confirmRow = new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId("confirm-export-roles").setLabel("Confirm Export").setStyle(ButtonStyle.Success),
+            new ButtonBuilder().setCustomId("cancel-export-roles").setLabel("Cancel").setStyle(ButtonStyle.Secondary)
+        );
         const response = await interaction.editReply({
           content: getMessage("role.msg_7"),
-          components: [row]
+          components: [row, confirmRow]
         });
+        
         try {
-          const selection = await response.awaitMessageComponent({
-            filter: i => i.customId === "export-role-menu" && i.user.id === interaction.user.id,
+          // Wait for confirmation button instead of first menu interaction
+          const collector = response.createMessageComponentCollector({
+            filter: i => i.user.id === interaction.user.id,
             time: 60000
           });
-          rolesToExport = selection.values.map(id => interaction.guild.roles.cache.get(id)).filter(Boolean);
-          await selection.deferUpdate();
+          
+          let selectedIds = [];
+          
+          const confirmResult = await new Promise((resolve) => {
+            collector.on("collect", async i => {
+                await i.deferUpdate();
+                if (i.customId === "export-role-menu") {
+                    selectedIds = i.values;
+                } else if (i.customId === "confirm-export-roles") {
+                    if (selectedIds.length === 0) {
+                        await interaction.editReply({
+                            content: getMessage("role.msg_9"),
+                            components: []
+                        });
+                        resolve(null);
+                        return collector.stop();
+                    }
+                    resolve(selectedIds);
+                    collector.stop();
+                } else if (i.customId === "cancel-export-roles") {
+                    await interaction.editReply({
+                        content: "Action cancelled.",
+                        components: []
+                    });
+                    resolve(null);
+                    collector.stop();
+                }
+            });
+            collector.on("end", (collected, reason) => {
+                if (reason === "time") {
+                    interaction.editReply({
+                        content: getMessage("role.msg_8"),
+                        components: []
+                    }).catch(() => {});
+                    resolve(null);
+                }
+            });
+          });
+          
+          if (!confirmResult) return;
+          rolesToExport = confirmResult.map(id => interaction.guild.roles.cache.get(id)).filter(Boolean);
         } catch (error) {
           return interaction.editReply({
-            content: getMessage("role.msg_8"),
+            content: getMessage("role.msg_15"),
             components: []
           });
         }
@@ -895,48 +977,65 @@ module.exports = {
             }));
             const selectMenu = new StringSelectMenuBuilder().setCustomId(`delete-select-${interaction.id}`).setPlaceholder("Select roles to delete").addOptions(selectOptions).setMinValues(1).setMaxValues(selectOptions.length);
             const selectRow = new ActionRowBuilder().addComponents(selectMenu);
+            const confirmRow = new ActionRowBuilder().addComponents(
+                new ButtonBuilder().setCustomId("confirm-delete-export-roles").setLabel("Confirm Deletion").setStyle(ButtonStyle.Danger),
+                new ButtonBuilder().setCustomId("cancel-delete-export-roles").setLabel("Cancel").setStyle(ButtonStyle.Secondary)
+            );
             await i.reply({
               content: getMessage("role.msg_12"),
-              components: [selectRow],
+              components: [selectRow, confirmRow],
               flags: MessageFlags.Ephemeral
             });
             const menuCollector = i.channel.createMessageComponentCollector({
-              filter: menuI => menuI.customId === `delete-select-${interaction.id}` && menuI.user.id === interaction.user.id,
+              filter: menuI => menuI.user.id === interaction.user.id,
               time: 30000,
-              max: 1
             });
+            
+            let selectedIds = [];
+            
             menuCollector.on("collect", async menuI => {
               await menuI.deferUpdate();
-              const selectedIds = menuI.values;
-              await menuI.editReply({
-                content: getMessage("role.msg_13"),
-                components: []
-              });
-              let deletedCount = 0;
-              let failedCount = 0;
-              const botHighest = interaction.guild.members.me.roles.highest;
-              for (const id of selectedIds) {
-                const role = interaction.guild.roles.cache.get(id);
-                if (!role) continue;
-                try {
-                  if (role.position >= botHighest.position) {
-                    failedCount++;
-                    continue;
+              if (menuI.customId === `delete-select-${interaction.id}`) {
+                  selectedIds = menuI.values;
+              } else if (menuI.customId === "confirm-delete-export-roles") {
+                  if (selectedIds.length === 0) return;
+                  menuCollector.stop();
+                  await menuI.editReply({
+                    content: getMessage("role.msg_13"),
+                    components: []
+                  });
+                  let deletedCount = 0;
+                  let failedCount = 0;
+                  const botHighest = interaction.guild.members.me.roles.highest;
+                  for (const id of selectedIds) {
+                    const role = interaction.guild.roles.cache.get(id);
+                    if (!role) continue;
+                    try {
+                      if (role.position >= botHighest.position) {
+                        failedCount++;
+                        continue;
+                      }
+                      await role.delete(`Exported and deleted by ${interaction.user.tag}`);
+                      deletedCount++;
+                    } catch (error) {
+                      console.error(`Failed to delete role ${role.name}:`, error);
+                      failedCount++;
+                    }
                   }
-                  await role.delete(`Exported and deleted by ${interaction.user.tag}`);
-                  deletedCount++;
-                } catch (error) {
-                  console.error(`Failed to delete role ${role.name}:`, error);
-                  failedCount++;
-                }
+                  await menuI.editReply({
+                    content: getMessage("role.msg_14", {
+                      deletedCount: deletedCount,
+                      failedCount: failedCount
+                    }),
+                    components: []
+                  });
+              } else if (menuI.customId === "cancel-delete-export-roles") {
+                  await menuI.editReply({
+                      content: "Action cancelled.",
+                      components: []
+                  });
+                  menuCollector.stop();
               }
-              await menuI.editReply({
-                content: getMessage("role.msg_14", {
-                  deletedCount: deletedCount,
-                  failedCount: failedCount
-                }),
-                components: []
-              });
             });
           }
         });
@@ -1311,11 +1410,16 @@ module.exports = {
           // Create a role select menu
           const row = new ActionRowBuilder().addComponents(new RoleSelectMenuBuilder().setCustomId("role-clear-menu").setPlaceholder("Select roles to clear permissions from").setMinValues(1).setMaxValues(10) // Allow up to 10 roles at once
           );
+          
+          const confirmSelectRow = new ActionRowBuilder().addComponents(
+              new ButtonBuilder().setCustomId("confirm-role-clear-selection").setLabel("Confirm Selection").setStyle(ButtonStyle.Primary),
+              new ButtonBuilder().setCustomId("cancel-role-clear-selection").setLabel("Cancel").setStyle(ButtonStyle.Secondary)
+          );
 
           // Send message with the role select menu
           const response = await interaction.editReply({
             content: getMessage("role.msg_38"),
-            components: [row],
+            components: [row, confirmSelectRow],
             flags: MessageFlags.Ephemeral
           });
 
@@ -1324,20 +1428,47 @@ module.exports = {
             filter: i => i.user.id === interaction.user.id,
             time: 60000,
             // 1 minute timeout
-            componentType: ComponentType.RoleSelect
           });
+          
+          let selectedRoles = [];
+          
           collector.on("collect", async i => {
             await i.deferUpdate();
-            const selectedRoles = i.values;
-            if (selectedRoles.length === 0) {
-              await interaction.editReply({
-                content: getMessage("role.msg_39"),
-                components: [],
-                flags: MessageFlags.Ephemeral
-              });
-              return collector.stop();
+            if (i.customId === "role-clear-menu") {
+                selectedRoles = i.values;
+            } else if (i.customId === "confirm-role-clear-selection") {
+                if (selectedRoles.length === 0) {
+                  await interaction.editReply({
+                    content: getMessage("role.msg_39"),
+                    components: [],
+                    flags: MessageFlags.Ephemeral
+                  });
+                  return collector.stop();
+                }
+                collector.stop("confirmed");
+            } else if (i.customId === "cancel-role-clear-selection") {
+                await interaction.editReply({
+                    content: getMessage("role.msg_40"), // generic timeout/cancel msg
+                    components: [],
+                    flags: MessageFlags.Ephemeral
+                });
+                return collector.stop("cancelled");
             }
-            collector.stop();
+          });
+          
+          collector.on("end", async (collected, reason) => {
+            if (reason === "cancelled" || reason === "time") {
+                if (reason === "time") {
+                    interaction.editReply({
+                        content: getMessage("role.msg_40"),
+                        components: [],
+                        flags: MessageFlags.Ephemeral
+                    }).catch(() => {});
+                }
+                return;
+            }
+            // reason === "confirmed"
+            const i = collected.last();
             const prompt = `Are you sure you want to clear all permissions from ${selectedRoles.length} role(s)?`;
             const confirmed = await confirmAction(i, prompt);
             if (!confirmed) return;
@@ -1779,6 +1910,11 @@ module.exports = {
           // Create a role select menu
           const row = new ActionRowBuilder().addComponents(new RoleSelectMenuBuilder().setCustomId("role-delete-menu").setPlaceholder("Select roles to delete").setMinValues(1).setMaxValues(10) // Allow up to 10 roles at once
           );
+          
+          const confirmSelectRow = new ActionRowBuilder().addComponents(
+              new ButtonBuilder().setCustomId("confirm-role-delete-selection").setLabel("Confirm Selection").setStyle(ButtonStyle.Primary),
+              new ButtonBuilder().setCustomId("cancel-role-delete-selection").setLabel("Cancel").setStyle(ButtonStyle.Secondary)
+          );
 
           // Add a confirmation button
           const confirmRow = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId("confirm-delete").setLabel("Confirm Deletion").setStyle(ButtonStyle.Danger), new ButtonBuilder().setCustomId("cancel-delete").setLabel("Cancel").setStyle(ButtonStyle.Secondary));
@@ -1786,55 +1922,68 @@ module.exports = {
           // Send message with the role select menu
           const response = await interaction.editReply({
             content: getMessage("role.msg_59"),
-            components: [row],
+            components: [row, confirmSelectRow],
             flags: MessageFlags.Ephemeral
           });
 
           // Create collectors
           const roleCollector = response.createMessageComponentCollector({
-            filter: i => i.customId === "role-delete-menu" && i.user.id === interaction.user.id,
+            filter: i => i.user.id === interaction.user.id,
             time: 60000 // 1 minute timeout
           });
           let selectedRoles = [];
           let selectedRoleObjects = [];
           roleCollector.on("collect", async i => {
             await i.deferUpdate();
-            selectedRoles = i.values;
-            selectedRoleObjects = selectedRoles.map(id => interaction.guild.roles.cache.get(id)).filter(r => r);
+            
+            if (i.customId === "role-delete-menu") {
+                selectedRoles = i.values;
+            } else if (i.customId === "confirm-role-delete-selection") {
+                selectedRoleObjects = selectedRoles.map(id => interaction.guild.roles.cache.get(id)).filter(r => r);
 
-            // Check if any roles were selected
-            if (selectedRoles.length === 0) {
-              await interaction.editReply({
-                content: getMessage("role.msg_60"),
-                components: [],
-                flags: MessageFlags.Ephemeral
-              });
-              return roleCollector.stop();
+                // Check if any roles were selected
+                if (selectedRoles.length === 0) {
+                  await interaction.editReply({
+                    content: getMessage("role.msg_60"),
+                    components: [],
+                    flags: MessageFlags.Ephemeral
+                  });
+                  return roleCollector.stop();
+                }
+
+                // Show confirmation with selected role names
+                const roleNames = selectedRoleObjects.map(r => `- ${r?.name || "Unknown Role"}`).join("\n");
+                await interaction.editReply({
+                  content: getMessage("role.msg_61", {
+                    length: selectedRoles.length,
+                    roleNames: roleNames
+                  }),
+                  components: [confirmRow],
+                  flags: MessageFlags.Ephemeral
+                });
+
+                // Stop the role collector as we now need confirmation
+                roleCollector.stop("roles_selected");
+            } else if (i.customId === "cancel-role-delete-selection") {
+                await interaction.editReply({
+                    content: getMessage("role.msg_62"),
+                    components: [],
+                    flags: MessageFlags.Ephemeral
+                });
+                return roleCollector.stop("cancelled");
             }
-
-            // Show confirmation with selected role names
-            const roleNames = selectedRoleObjects.map(r => `- ${r?.name || "Unknown Role"}`).join("\n");
-            await interaction.editReply({
-              content: getMessage("role.msg_61", {
-                length: selectedRoles.length,
-                roleNames: roleNames
-              }),
-              components: [confirmRow],
-              flags: MessageFlags.Ephemeral
-            });
-
-            // Stop the role collector as we now need confirmation
-            roleCollector.stop("roles_selected");
           });
 
           // When roles are selected, start confirmation collector
           roleCollector.on("end", (collected, reason) => {
-            if (reason === "time") {
-              interaction.editReply({
-                content: getMessage("role.msg_62"),
-                components: [],
-                flags: MessageFlags.Ephemeral
-              }).catch(() => {});
+            if (reason === "time" || reason === "cancelled") {
+                if (reason === "time") {
+                  interaction.editReply({
+                    content: getMessage("role.msg_62"),
+                    components: [],
+                    flags: MessageFlags.Ephemeral
+                  }).catch(() => {});
+                }
             } else if (reason === "roles_selected") {
               // Start the confirmation collector
               const confirmCollector = response.createMessageComponentCollector({
@@ -2061,23 +2210,35 @@ module.exports = {
         }
       } else {
         const row = new ActionRowBuilder().addComponents(new RoleSelectMenuBuilder().setCustomId("reorder-role-menu").setPlaceholder("Select roles to move").setMinValues(1).setMaxValues(10));
+        
+        const confirmSelectRow = new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId("confirm-role-reorder-selection").setLabel("Confirm Selection").setStyle(ButtonStyle.Primary),
+            new ButtonBuilder().setCustomId("cancel-role-reorder-selection").setLabel("Cancel").setStyle(ButtonStyle.Secondary)
+        );
+
         const confirmRow = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId("confirm-reorder").setLabel("Confirm Move").setStyle(ButtonStyle.Success), new ButtonBuilder().setCustomId("cancel-reorder").setLabel("Cancel").setStyle(ButtonStyle.Secondary));
+        
         const response = await interaction.editReply({
           content: getMessage("role.msg_78", {
             positionOption: positionOption,
             name: pivotRole.name
           }),
-          components: [row]
+          components: [row, confirmSelectRow]
         });
+        
         const collector = response.createMessageComponentCollector({
           filter: i => i.user.id === interaction.user.id,
           time: 60000
         });
+        
         let selectedRoles = [];
+        
         collector.on("collect", async i => {
           await i.deferUpdate();
           if (i.customId === "reorder-role-menu") {
             selectedRoles = i.values;
+          } else if (i.customId === "confirm-role-reorder-selection") {
+            if (selectedRoles.length === 0) return;
             await interaction.editReply({
               content: getMessage("role.msg_79", {
                 length: selectedRoles.length,
@@ -2087,14 +2248,23 @@ module.exports = {
               components: [confirmRow]
             });
             collector.stop("menu_selected");
+          } else if (i.customId === "cancel-role-reorder-selection") {
+              await interaction.editReply({
+                  content: getMessage("role.msg_80"),
+                  components: []
+              }).catch(() => {});
+              collector.stop("cancelled");
           }
         });
+        
         collector.on("end", async (collected, reason) => {
-          if (reason === "time") {
-            await interaction.editReply({
-              content: getMessage("role.msg_80"),
-              components: []
-            }).catch(() => {});
+          if (reason === "time" || reason === "cancelled") {
+            if (reason === "time") {
+                await interaction.editReply({
+                  content: getMessage("role.msg_80"),
+                  components: []
+                }).catch(() => {});
+            }
           } else if (reason === "menu_selected") {
             const btnCollector = response.createMessageComponentCollector({
               filter: i => i.user.id === interaction.user.id && (i.customId === "confirm-reorder" || i.customId === "cancel-reorder"),

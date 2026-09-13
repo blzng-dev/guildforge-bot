@@ -4,6 +4,8 @@ const {
     ChannelType,
     MessageFlags,
     ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
     RoleSelectMenuBuilder,
     ChannelSelectMenuBuilder,
     AutoModerationRuleTriggerType,
@@ -1521,40 +1523,54 @@ async function handleExempt(interaction) {
 
     const row1 = new ActionRowBuilder().addComponents(roleMenu);
     const row2 = new ActionRowBuilder().addComponents(channelMenu);
+    
+    const confirmRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId(`exempt_confirm_${rule.id}`)
+            .setLabel("Save Exemptions")
+            .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+            .setCustomId(`exempt_cancel_${rule.id}`)
+            .setLabel("Cancel")
+            .setStyle(ButtonStyle.Secondary)
+    );
+
+    let selectedRoleIds = Array.from(rule.exemptRoles.keys());
+    let selectedChannelIds = Array.from(rule.exemptChannels.keys());
 
     function buildExemptOutput() {
         let rolesStr = "";
-        if (rule.exemptRoles.size === 0) {
+        if (selectedRoleIds.length === 0) {
             rolesStr = getMessage("exempt.no_roles");
         } else {
             rolesStr =
-                Array.from(rule.exemptRoles.keys())
+                selectedRoleIds
                     .map((rId) => `<@&${rId}>`)
                     .join(", ") + "\n";
         }
 
         let channelsStr = "";
-        if (rule.exemptChannels.size === 0) {
+        if (selectedChannelIds.length === 0) {
             channelsStr = getMessage("exempt.no_channels");
         } else {
             channelsStr =
-                Array.from(rule.exemptChannels.keys())
+                selectedChannelIds
                     .map((cId) => `<#${cId}>`)
                     .join(", ") + "\n";
         }
 
         return getMessage("exempt.header", {
             name: rule.name,
-            roleCount: rule.exemptRoles.size,
+            roleCount: selectedRoleIds.length,
             roles: rolesStr,
-            channelCount: rule.exemptChannels.size,
+            channelCount: selectedChannelIds.length,
             channels: channelsStr,
-        });
+        }) + "\n**Select roles and channels below, then click Save Exemptions.**";
     }
 
     const response = await interaction.editReply({
         content: buildExemptOutput(),
-        components: [row1, row2],
+        components: [row1, row2, confirmRow],
     });
 
     const collector = response.createMessageComponentCollector({
@@ -1562,36 +1578,55 @@ async function handleExempt(interaction) {
         time: 120000,
     });
 
-    collector.on("collect", async (selectInteraction) => {
-        await selectInteraction.deferUpdate();
+    collector.on("collect", async (i) => {
+        await i.deferUpdate();
 
-        if (selectInteraction.customId.startsWith("exempt_roles_")) {
-            const selectedRoleIds = selectInteraction.values;
+        if (i.customId.startsWith("exempt_roles_")) {
+            selectedRoleIds = i.values;
+            await interaction.editReply({
+                content: buildExemptOutput(),
+                components: [row1, row2, confirmRow],
+            });
+        } else if (i.customId.startsWith("exempt_channels_")) {
+            selectedChannelIds = i.values;
+            await interaction.editReply({
+                content: buildExemptOutput(),
+                components: [row1, row2, confirmRow],
+            });
+        } else if (i.customId.startsWith("exempt_confirm_")) {
+            collector.stop("confirmed");
+            
             await rule.edit({
                 exemptRoles: selectedRoleIds,
-                reason: `Updated exempt roles by ${interaction.user.tag}`,
-            });
-            await logAction(
-                interaction.guild,
-                `Updated Exempt Roles for "${rule.name}" (${selectedRoleIds.length} roles) by ${interaction.user.tag}`,
-            );
-        } else if (selectInteraction.customId.startsWith("exempt_channels_")) {
-            const selectedChannelIds = selectInteraction.values;
-            await rule.edit({
                 exemptChannels: selectedChannelIds,
-                reason: `Updated exempt channels by ${interaction.user.tag}`,
+                reason: `Updated exemptions by ${interaction.user.tag}`,
             });
             await logAction(
                 interaction.guild,
-                `Updated Exempt Channels for "${rule.name}" (${selectedChannelIds.length} channels) by ${interaction.user.tag}`,
+                `Updated Exemptions for "${rule.name}" (${selectedRoleIds.length} roles, ${selectedChannelIds.length} channels) by ${interaction.user.tag}`,
             );
-        }
 
-        await rule.fetch();
-        await interaction.editReply({
-            content: buildExemptOutput(),
-            components: [row1, row2],
-        });
+            await rule.fetch();
+            await interaction.editReply({
+                content: buildExemptOutput().replace("\n**Select roles and channels below, then click Save Exemptions.**", "\n✅ **Exemptions Saved Successfully!**"),
+                components: [], // Remove menus and buttons after saving
+            });
+        } else if (i.customId.startsWith("exempt_cancel_")) {
+            collector.stop("cancelled");
+            await interaction.editReply({
+                content: buildExemptOutput().replace("\n**Select roles and channels below, then click Save Exemptions.**", "\n❌ **Action Cancelled.**"),
+                components: [],
+            });
+        }
+    });
+    
+    collector.on("end", async (collected, reason) => {
+        if (reason === "time") {
+            await interaction.editReply({
+                content: buildExemptOutput().replace("\n**Select roles and channels below, then click Save Exemptions.**", "\n⏳ **Menu timed out.**"),
+                components: []
+            }).catch(() => {});
+        }
     });
 }
 
