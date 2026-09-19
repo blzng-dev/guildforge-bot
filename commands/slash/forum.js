@@ -41,7 +41,7 @@ const MESSAGES = {
         bulk_confirm_lock: "Are you sure you want to **lock** **{count}** post(s) in <#{channelId}>?{filterText}",
         bulk_confirm_unlock: "Are you sure you want to **unlock** **{count}** post(s) in <#{channelId}>?{filterText}",
         bulk_confirm_tag: "Are you sure you want to add tag **{tag}** to **{count}** post(s) in <#{channelId}>?{filterText}",
-        bulk_finish: ":checkmark: Finished processing **{count}** posts in <#{channelId}>.",
+        bulk_finish: ":checkmark: Finished {action} **{count}** posts in <#{channelId}>.",
     }
 };
 
@@ -503,7 +503,7 @@ module.exports = {
                 .setDescription("bulk operations on forum posts")
                 .addSubcommand((subcommand) =>
                     subcommand
-                        .setName("close-all")
+                        .setName("close")
                         .setDescription("close (archive) all active posts in a forum")
                         .addChannelOption((option) =>
                             option
@@ -528,7 +528,7 @@ module.exports = {
                 )
                 .addSubcommand((subcommand) =>
                     subcommand
-                        .setName("open-all")
+                        .setName("open")
                         .setDescription("open (unarchive) all archived posts in a forum")
                         .addChannelOption((option) =>
                             option
@@ -553,7 +553,7 @@ module.exports = {
                 )
                 .addSubcommand((subcommand) =>
                     subcommand
-                        .setName("lock-all")
+                        .setName("lock")
                         .setDescription("lock all posts in a forum")
                         .addChannelOption((option) =>
                             option
@@ -578,7 +578,7 @@ module.exports = {
                 )
                 .addSubcommand((subcommand) =>
                     subcommand
-                        .setName("unlock-all")
+                        .setName("unlock")
                         .setDescription("unlock all locked posts in a forum")
                         .addChannelOption((option) =>
                             option
@@ -603,7 +603,7 @@ module.exports = {
                 )
                 .addSubcommand((subcommand) =>
                     subcommand
-                        .setName("tag-all")
+                        .setName("tag")
                         .setDescription("add a tag to all posts in a forum")
                         .addChannelOption((option) =>
                             option
@@ -625,6 +625,17 @@ module.exports = {
                                 .setDescription("optional tag to filter which posts get the new tag")
                                 .setRequired(false)
                                 .setAutocomplete(true)
+                        )
+                        .addStringOption((option) =>
+                            option
+                                .setName("status")
+                                .setDescription("Filter by post status (default: open posts only)")
+                                .setRequired(false)
+                                .addChoices(
+                                    { name: "Open / Active Posts Only (Default)", value: "open" },
+                                    { name: "All Posts (Open & Closed)", value: "all" },
+                                    { name: "Closed / Archived Posts Only", value: "closed" }
+                                )
                         )
                         .addBooleanOption((option) =>
                             option
@@ -1077,8 +1088,8 @@ module.exports = {
 
             const filterText = filterTagObj ? ` (filtered by tag: **${filterTagObj.name}**)` : "";
 
-            // --- BULK CLOSE-ALL ---
-            if (subcommand === "close-all") {
+            // --- BULK CLOSE ---
+            if (subcommand === "close") {
                 await interaction.deferReply({ flags: MessageFlags.Ephemeral });
                 const allPosts = await fetchAllForumPosts(channel);
                 let targetThreads = allPosts;
@@ -1107,7 +1118,7 @@ module.exports = {
                 const progress = new InteractiveProgress(
                     interaction,
                     targetThreads.length,
-                    `Closing Forum Posts in #${channel.name}`
+                    `Closing Forum Posts in <#${channel.id}>`
                 );
                 await progress.start();
 
@@ -1123,15 +1134,15 @@ module.exports = {
                     await wait(200);
                 }
 
-                await progress.finish(getMessage("forum.bulk_finish", { count: progress.current, channelId: channel.id }));
+                await progress.finish(getMessage("forum.bulk_finish", { action: "closing", count: progress.current, channelId: channel.id }));
                 await logAction(
                     interaction.guild,
                     `**Bulk Closed Forum Posts**\nClosed ${progress.current}/${targetThreads.length} posts in <#${channel.id}> by ${interaction.user.tag}`
                 );
             }
 
-            // --- BULK OPEN-ALL ---
-            else if (subcommand === "open-all") {
+            // --- BULK OPEN ---
+            else if (subcommand === "open") {
                 await interaction.deferReply({ flags: MessageFlags.Ephemeral });
                 const allPosts = await fetchAllForumPosts(channel);
                 let targetThreads = allPosts;
@@ -1160,7 +1171,7 @@ module.exports = {
                 const progress = new InteractiveProgress(
                     interaction,
                     targetThreads.length,
-                    `Opening Forum Posts in #${channel.name}`
+                    `Opening Forum Posts in <#${channel.id}>`
                 );
                 await progress.start();
 
@@ -1176,15 +1187,15 @@ module.exports = {
                     await wait(200);
                 }
 
-                await progress.finish(getMessage("forum.bulk_finish", { count: progress.current, channelId: channel.id }));
+                await progress.finish(getMessage("forum.bulk_finish", { action: "opening", count: progress.current, channelId: channel.id }));
                 await logAction(
                     interaction.guild,
                     `**Bulk Opened Forum Posts**\nOpened ${progress.current}/${targetThreads.length} posts in <#${channel.id}> by ${interaction.user.tag}`
                 );
             }
 
-            // --- BULK LOCK-ALL ---
-            else if (subcommand === "lock-all") {
+            // --- BULK LOCK ---
+            else if (subcommand === "lock") {
                 await interaction.deferReply({ flags: MessageFlags.Ephemeral });
                 const allPosts = await fetchAllForumPosts(channel);
                 let targetThreads = allPosts;
@@ -1213,7 +1224,7 @@ module.exports = {
                 const progress = new InteractiveProgress(
                     interaction,
                     targetThreads.length,
-                    `Locking Forum Posts in #${channel.name}`
+                    `Locking Forum Posts in <#${channel.id}>`
                 );
                 await progress.start();
 
@@ -1235,15 +1246,15 @@ module.exports = {
                     await wait(200);
                 }
 
-                await progress.finish(getMessage("forum.bulk_finish", { count: progress.current, channelId: channel.id }));
+                await progress.finish(getMessage("forum.bulk_finish", { action: "locking", count: progress.current, channelId: channel.id }));
                 await logAction(
                     interaction.guild,
                     `**Bulk Locked Forum Posts**\nLocked ${progress.current}/${targetThreads.length} posts in <#${channel.id}> by ${interaction.user.tag}`
                 );
             }
 
-            // --- BULK UNLOCK-ALL ---
-            else if (subcommand === "unlock-all") {
+            // --- BULK UNLOCK ---
+            else if (subcommand === "unlock") {
                 await interaction.deferReply({ flags: MessageFlags.Ephemeral });
                 const allPosts = await fetchAllForumPosts(channel);
                 let targetThreads = allPosts;
@@ -1272,7 +1283,7 @@ module.exports = {
                 const progress = new InteractiveProgress(
                     interaction,
                     targetThreads.length,
-                    `Unlocking Forum Posts in #${channel.name}`
+                    `Unlocking Forum Posts in <#${channel.id}>`
                 );
                 await progress.start();
 
@@ -1294,17 +1305,20 @@ module.exports = {
                     await wait(200);
                 }
 
-                await progress.finish(getMessage("forum.bulk_finish", { count: progress.current, channelId: channel.id }));
+                await progress.finish(getMessage("forum.bulk_finish", { action: "unlocking", count: progress.current, channelId: channel.id }));
                 await logAction(
                     interaction.guild,
                     `**Bulk Unlocked Forum Posts**\nUnlocked ${progress.current}/${targetThreads.length} posts in <#${channel.id}> by ${interaction.user.tag}`
                 );
             }
 
-            // --- BULK TAG-ALL ---
-            else if (subcommand === "tag-all") {
-                await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+            // --- BULK TAG ---
+            else if (subcommand === "tag") {
+                const ephemeral = interaction.options.getBoolean("ephemeral") ?? true;
+                await interaction.deferReply({ flags: ephemeral ? MessageFlags.Ephemeral : 0 });
                 const tagName = interaction.options.getString("tag", true).trim();
+                const statusFilter = interaction.options.getString("status") || "open";
+
                 const targetTag = channel.availableTags?.find(
                     (t) => t.name.toLowerCase() === tagName.toLowerCase() || t.id === tagName
                 );
@@ -1315,8 +1329,15 @@ module.exports = {
                     });
                 }
 
-                const allPosts = await fetchAllForumPosts(channel);
-                let targetThreads = allPosts;
+                let targetThreads = [];
+                if (statusFilter === "open") {
+                    const activeThreads = await channel.threads.fetchActive().catch(() => null);
+                    targetThreads = activeThreads ? Array.from(activeThreads.threads.values()) : [];
+                } else if (statusFilter === "closed") {
+                    targetThreads = await fetchAllArchivedThreads(channel);
+                } else {
+                    targetThreads = await fetchAllForumPosts(channel);
+                }
 
                 if (filterTagObj) {
                     targetThreads = targetThreads.filter((t) => t.appliedTags?.includes(filterTagObj.id));
@@ -1332,13 +1353,20 @@ module.exports = {
                     });
                 }
 
+                let statusText = "";
+                if (statusFilter === "open") statusText = " (open posts only)";
+                else if (statusFilter === "closed") statusText = " (closed posts only)";
+                else if (statusFilter === "all") statusText = " (all open & closed posts)";
+
+                const combinedFilterText = `${filterText}${statusText}`;
+
                 const confirmed = await confirmAction(
                     interaction,
                     getMessage("forum.bulk_confirm_tag", {
                         tag: targetTag.name,
                         count: targetThreads.length,
                         channelId: channel.id,
-                        filterText,
+                        filterText: combinedFilterText,
                     })
                 );
                 if (!confirmed) return;
@@ -1346,7 +1374,7 @@ module.exports = {
                 const progress = new InteractiveProgress(
                     interaction,
                     targetThreads.length,
-                    `Applying Tag "${targetTag.name}" in #${channel.name}`
+                    `Applying Tag "${targetTag.name}" in <#${channel.id}>`
                 );
                 await progress.start();
 
@@ -1374,7 +1402,7 @@ module.exports = {
                     await wait(200);
                 }
 
-                await progress.finish(getMessage("forum.bulk_finish", { count: progress.current, channelId: channel.id }));
+                await progress.finish(getMessage("forum.bulk_finish", { action: "tagging", count: progress.current, channelId: channel.id }));
                 await logAction(
                     interaction.guild,
                     `**Bulk Tagged Forum Posts**\nApplied tag \`${targetTag.name}\` to ${progress.current}/${targetThreads.length} posts in <#${channel.id}> by ${interaction.user.tag}`

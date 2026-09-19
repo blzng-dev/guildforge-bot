@@ -184,12 +184,12 @@ class InteractiveProgress {
         }
     }
 
-    async finish(finalMessage) {
+    async finish(finalMessage, keepProgress = false) {
         this.current = this.total;
         if (this.collector) this.collector.stop('finished');
         try {
             await this.interaction.editReply({ 
-                content: this._buildContent() + '\n\n' + finalMessage, 
+                content: keepProgress ? (this._buildContent() + '\n\n' + finalMessage) : finalMessage, 
                 components: [] 
             });
         } catch (e) {
