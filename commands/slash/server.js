@@ -5,6 +5,8 @@ const {
     ChannelType,
     PermissionFlagsBits,
     Routes,
+    AttachmentBuilder,
+    EmbedBuilder,
 } = require("discord.js");
 const { REST } = require("@discordjs/rest");
 const MESSAGES = {
@@ -28,6 +30,20 @@ const MESSAGES = {
             error_enable_failed: ":x_: Failed to enable community: {error}",
             success_disabled: ":checkmark: Community features have been disabled for this server.",
             error_disable_failed: ":x_: Failed to disable community features: {error}"
+        },
+        tag: {
+            error_invalid_id: ":x_: Invalid Guild ID. Discord Guild IDs must be a 17-20 digit snowflake number.",
+            error_target_not_found: ":x_: Could not fetch the target server with ID `{guildId}`. Make sure the bot is present in that server.",
+            members: {
+                none_found: ":x_: No members were found with Guild ID `{guildId}` equipped{activeNote}.",
+                none_found_summary: ":x_: No members in this server currently have any guild tags equipped.",
+                success_title: "Members with Guild Tag Equipped",
+            },
+            user: {
+                not_found: ":x_: Could not fetch that user.",
+                no_tag: ":information_source: **{username}** (`{userId}`) does not have any guild tag equipped.",
+            },
+            error_generic: ":x_: An error occurred while processing the tag command: {error}"
         },
         error_generic: ":x_: Failed to update community settings.",
         error_permissions: " The bot lacks necessary permissions to manage server settings.",
@@ -147,6 +163,72 @@ module.exports = {
                                 .setRequired(false)
                         )
                 )
+        )
+        .addSubcommandGroup((group) =>
+            group
+                .setName("tag")
+                .setDescription("inspect members with equipped guild tags or clans")
+                .addSubcommand((subcommand) =>
+                    subcommand
+                        .setName("members")
+                        .setDescription("fetch members who have equipped a specific guild ID tag")
+                        .addStringOption((option) =>
+                            option
+                                .setName("guild_id")
+                                .setDescription("the ID of the guild/clan whose tag is equipped")
+                                .setRequired(true)
+                        )
+                        .addStringOption((option) =>
+                            option
+                                .setName("scope")
+                                .setDescription("server to search within (default: Current Server)")
+                                .setRequired(false)
+                                .addChoices(
+                                    { name: "Current Server (default)", value: "current" },
+                                    { name: "Target Server (bot must be a member)", value: "target" }
+                                )
+                        )
+                        .addBooleanOption((option) =>
+                            option
+                                .setName("active_only")
+                                .setDescription("only match members actively displaying the tag (default: true)")
+                                .setRequired(false)
+                        )
+                        .addBooleanOption((option) =>
+                            option
+                                .setName("ephemeral")
+                                .setDescription("Whether the response should be ephemeral (default: true)")
+                                .setRequired(false)
+                        )
+                )
+                .addSubcommand((subcommand) =>
+                    subcommand
+                        .setName("user")
+                        .setDescription("check the equipped guild tag of a specific user")
+                        .addUserOption((option) =>
+                            option
+                                .setName("target")
+                                .setDescription("the user to check")
+                                .setRequired(true)
+                        )
+                        .addBooleanOption((option) =>
+                            option
+                                .setName("ephemeral")
+                                .setDescription("Whether the response should be ephemeral (default: true)")
+                                .setRequired(false)
+                        )
+                )
+                .addSubcommand((subcommand) =>
+                    subcommand
+                        .setName("summary")
+                        .setDescription("summary of all equipped guild tags in this server")
+                        .addBooleanOption((option) =>
+                            option
+                                .setName("ephemeral")
+                                .setDescription("Whether the response should be ephemeral (default: true)")
+                                .setRequired(false)
+                        )
+                )
         ),
 
     async execute(interaction) {
@@ -164,8 +246,9 @@ module.exports = {
 
         const subcommandGroup = interaction.options.getSubcommandGroup(false);
         const subcommand = interaction.options.getSubcommand();
+        const isEphemeral = interaction.options.getBoolean("ephemeral") ?? true;
         // Defer the reply immediately to avoid interaction timeouts
-        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        await interaction.deferReply({ flags: isEphemeral ? MessageFlags.Ephemeral : 0 });
 
         try {
             const guild = interaction.guild;
@@ -180,6 +263,240 @@ module.exports = {
                 } else if (subcommand === "disable") {
                     await setSetting(guild.id, "auditLogChannel", null);
                     await interaction.editReply(getMessage('server.auditlog.disable'));
+                }
+                return;
+            }
+
+            if (subcommandGroup === "tag") {
+                if (subcommand === "members") {
+                    const guildId = interaction.options.getString("guild_id").trim();
+                    const scope = interaction.options.getString("scope") || "current";
+                    const activeOnly = interaction.options.getBoolean("active_only") ?? true;
+
+                    if (!/^\d{17,20}$/.test(guildId)) {
+                        return interaction.editReply({
+                            content: getMessage("server.tag.error_invalid_id"),
+                        });
+                    }
+
+                    let targetGuild = guild;
+                    if (scope === "target") {
+                        try {
+                            targetGuild =
+                                interaction.client.guilds.cache.get(guildId) ||
+                                (await interaction.client.guilds.fetch(guildId));
+                        } catch {
+                            return interaction.editReply({
+                                content: getMessage("server.tag.error_target_not_found", { guildId }),
+                            });
+                        }
+                    }
+
+                    const fetchedMembers = await targetGuild.members.fetch();
+
+                    const matching = [];
+                    for (const [, member] of fetchedMembers) {
+                        const pg = member.user.primaryGuild;
+                        if (!pg || pg.identityGuildId !== guildId) continue;
+                        if (activeOnly && pg.identityEnabled === false) continue;
+                        matching.push(member);
+                    }
+
+                    if (matching.length === 0) {
+                        const activeNote = activeOnly ? " (with display enabled)" : "";
+                        return interaction.editReply({
+                            content: getMessage("server.tag.members.none_found", { guildId, activeNote }),
+                        });
+                    }
+
+                    const firstUser = matching[0].user;
+                    const tagName = firstUser.primaryGuild?.tag || "N/A";
+                    const badgeUrl =
+                        typeof firstUser.guildTagBadgeURL === "function"
+                            ? firstUser.guildTagBadgeURL({ size: 128 })
+                            : null;
+                    const knownGuild = interaction.client.guilds.cache.get(guildId);
+                    const guildName = knownGuild ? knownGuild.name : null;
+
+                    const lines = matching.map((m, idx) => {
+                        const tagDisplay = m.user.primaryGuild?.tag ? `\`[${m.user.primaryGuild.tag}]\` ` : "";
+                        const activeState = m.user.primaryGuild?.identityEnabled ? "Active" : "Hidden";
+                        return `${idx + 1}. <@${m.id}> - \`${m.user.tag}\` (${tagDisplay}${activeState})`;
+                    });
+
+                    const embed = new EmbedBuilder()
+                        .setTitle(getMessage("server.tag.members.success_title"))
+                        .setColor("#2b2d31")
+                        .addFields(
+                            {
+                                name: "Equipped Guild ID",
+                                value: `\`${guildId}\`${guildName ? ` (${guildName})` : ""}`,
+                                inline: true,
+                            },
+                            { name: "Server Tag", value: `\`${tagName}\``, inline: true },
+                            {
+                                name: "Matched Members",
+                                value: `**${matching.length}** / ${fetchedMembers.size}`,
+                                inline: true,
+                            },
+                            {
+                                name: "Search Scope",
+                                value:
+                                    scope === "target"
+                                        ? `Target Server (\`${targetGuild.name}\`)`
+                                        : `Current Server (\`${targetGuild.name}\`)`,
+                                inline: true,
+                            },
+                            { name: "Active Only", value: activeOnly ? "Yes" : "No", inline: true }
+                        )
+                        .setTimestamp();
+
+                    if (badgeUrl) {
+                        embed.setThumbnail(badgeUrl);
+                    }
+
+                    if (matching.length <= 25) {
+                        embed.setDescription(`### Members List (${matching.length}):\n${lines.join("\n")}`);
+                        return interaction.editReply({
+                            embeds: [embed],
+                            allowedMentions: { users: [] },
+                        });
+                    } else {
+                        const previewLines = lines.slice(0, 20).join("\n");
+                        embed.setDescription(
+                            `### Members List (Showing first 20 of ${matching.length}):\n${previewLines}\n\n*The complete list of ${matching.length} members is attached as a file below.*`
+                        );
+
+                        const fullExport = [
+                            `=== Guild Tag Member Export ===`,
+                            `Guild ID: ${guildId}`,
+                            `Guild Name: ${guildName || "Unknown / Bot Not In Guild"}`,
+                            `Server Tag: ${tagName}`,
+                            `Total Matched Members: ${matching.length}`,
+                            `Total Members Scanned: ${fetchedMembers.size}`,
+                            `Active Filter: ${activeOnly ? "Active Only" : "All (Including Hidden)"}`,
+                            `Server Scanned: ${targetGuild.name} (${targetGuild.id})`,
+                            `Export Timestamp: ${new Date().toISOString()}`,
+                            `===============================\n`,
+                            matching
+                                .map((m, idx) => {
+                                    const pg = m.user.primaryGuild;
+                                    return `${idx + 1}. ${m.user.tag} (ID: ${m.id}) | Tag: [${pg?.tag || "N/A"}] | Display Active: ${pg?.identityEnabled ? "Yes" : "No"} | Joined Server: ${m.joinedAt ? m.joinedAt.toISOString() : "Unknown"}`;
+                                })
+                                .join("\n"),
+                        ].join("\n");
+
+                        const attachment = new AttachmentBuilder(Buffer.from(fullExport, "utf-8"), {
+                            name: `guildtag-${guildId}-members.txt`,
+                        });
+
+                        return interaction.editReply({
+                            embeds: [embed],
+                            files: [attachment],
+                            allowedMentions: { users: [] },
+                        });
+                    }
+                } else if (subcommand === "user") {
+                    const targetUser = interaction.options.getUser("target");
+                    const member = await guild.members.fetch(targetUser.id).catch(() => null);
+                    let userObj = member?.user || targetUser;
+
+                    if (!userObj.primaryGuild) {
+                        userObj = await interaction.client.users.fetch(targetUser.id, { force: true }).catch(() => targetUser);
+                    }
+
+                    const pg = userObj.primaryGuild;
+                    if (!pg || !pg.identityGuildId) {
+                        return interaction.editReply({
+                            content: getMessage("server.tag.user.no_tag", {
+                                username: userObj.tag || userObj.username,
+                                userId: userObj.id,
+                            }),
+                        });
+                    }
+
+                    const badgeUrl =
+                        typeof userObj.guildTagBadgeURL === "function"
+                            ? userObj.guildTagBadgeURL({ size: 128 })
+                            : null;
+                    const knownGuild = interaction.client.guilds.cache.get(pg.identityGuildId);
+
+                    const embed = new EmbedBuilder()
+                        .setTitle(`Equipped Guild Tag: ${userObj.tag || userObj.username}`)
+                        .setColor("#2b2d31")
+                        .setThumbnail(badgeUrl || userObj.displayAvatarURL())
+                        .addFields(
+                            { name: "User", value: `<@${userObj.id}> (\`${userObj.id}\`)`, inline: false },
+                            {
+                                name: "Equipped Guild ID",
+                                value: `\`${pg.identityGuildId}\`${knownGuild ? ` (${knownGuild.name})` : ""}`,
+                                inline: true,
+                            },
+                            { name: "Server Tag", value: `\`${pg.tag || "N/A"}\``, inline: true },
+                            { name: "Display Active", value: pg.identityEnabled ? "Yes" : "No", inline: true },
+                            { name: "Badge Hash", value: pg.badge ? `\`${pg.badge}\`` : "*None*", inline: true }
+                        )
+                        .setTimestamp();
+
+                    return interaction.editReply({
+                        embeds: [embed],
+                        allowedMentions: { users: [] },
+                    });
+                } else if (subcommand === "summary") {
+                    const members = await guild.members.fetch();
+                    const tagMap = new Map();
+
+                    for (const [, member] of members) {
+                        const pg = member.user.primaryGuild;
+                        if (!pg || !pg.identityGuildId) continue;
+
+                        const key = pg.identityGuildId;
+                        if (!tagMap.has(key)) {
+                            tagMap.set(key, {
+                                guildId: key,
+                                tag: pg.tag || "N/A",
+                                count: 0,
+                                activeCount: 0,
+                            });
+                        }
+                        const item = tagMap.get(key);
+                        item.count++;
+                        if (pg.identityEnabled) item.activeCount++;
+                    }
+
+                    if (tagMap.size === 0) {
+                        return interaction.editReply({
+                            content: getMessage("server.tag.members.none_found_summary"),
+                        });
+                    }
+
+                    const sorted = Array.from(tagMap.values()).sort((a, b) => b.count - a.count);
+                    const totalTagUsers = sorted.reduce((sum, item) => sum + item.count, 0);
+
+                    const embed = new EmbedBuilder()
+                        .setTitle(`Guild Tags Summary: ${guild.name}`)
+                        .setColor("#2b2d31")
+                        .setDescription(
+                            `**${totalTagUsers}** members in this server are wearing tags from **${sorted.length}** distinct guild(s).`
+                        )
+                        .setTimestamp();
+
+                    const topList = sorted.slice(0, 10).map((item, idx) => {
+                        const known = interaction.client.guilds.cache.get(item.guildId);
+                        const guildInfo = known ? ` (${known.name})` : "";
+                        return `**${idx + 1}. [${item.tag}]** \`${item.guildId}\`${guildInfo}\n└ **${item.count}** member(s) (${item.activeCount} active)`;
+                    });
+
+                    embed.addFields({
+                        name: "Top Equipped Guilds",
+                        value: topList.join("\n\n"),
+                        inline: false,
+                    });
+
+                    return interaction.editReply({
+                        embeds: [embed],
+                        allowedMentions: { users: [] },
+                    });
                 }
                 return;
             }

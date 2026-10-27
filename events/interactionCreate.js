@@ -23,10 +23,16 @@ module.exports = {
         } catch (error) {
             console.error(error);
             const errorMessage = "There was an error while executing this command!";
-            if (interaction.replied || interaction.deferred) {
-                await interaction.followUp({ content: errorMessage });
-            } else {
-                await interaction.reply({ content: errorMessage });
+            try {
+                if (interaction.replied || interaction.deferred) {
+                    await interaction.followUp({ content: errorMessage, flags: MessageFlags.Ephemeral });
+                } else {
+                    await interaction.reply({ content: errorMessage, flags: MessageFlags.Ephemeral });
+                }
+            } catch (replyError) {
+                try {
+                    await interaction.followUp({ content: errorMessage, flags: MessageFlags.Ephemeral });
+                } catch {}
             }
         }
     },

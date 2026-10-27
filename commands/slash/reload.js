@@ -53,20 +53,22 @@ module.exports = {
             }
         }
 
-        const command = interaction.client.commands.get(commandName);
+        const command = interaction.client.commands.get(commandName) ||
+            interaction.client.commands.find(c => c.data.name.toLowerCase() === commandName);
 
         if (!command) {
             return interaction.reply({ content: getMessage('reload.error_not_found', { commandName }), flags: MessageFlags.Ephemeral });
         }
 
         try {
-            const commandPath = path.join(__dirname, `${command.data.name}.js`);
+            const commandPath = command.filePath || path.join(__dirname, `${command.data.name}.js`);
 
             // Delete from cache
             delete require.cache[require.resolve(commandPath)];
 
             // Reload the command
             const newCommand = require(commandPath);
+            newCommand.filePath = commandPath;
             interaction.client.commands.set(newCommand.data.name, newCommand);
 
             await interaction.reply({ content: getMessage('reload.success', { commandName: newCommand.data.name }), flags: MessageFlags.Ephemeral });

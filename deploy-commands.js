@@ -85,11 +85,6 @@ const rest = new REST().setToken(token);
             `Started refreshing ${commands.length} application (/) commands.`
         );
 
-        // Clear any orphaned test guild commands that were causing duplicates
-        await rest.put(Routes.applicationGuildCommands(clientId, '1019267320285237249'), {
-            body: [],
-        });
-        
         // The put method is used to fully refresh all commands globally with the current set
         const data = await rest.put(Routes.applicationCommands(clientId), {
             body: commands,

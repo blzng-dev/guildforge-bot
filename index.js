@@ -38,6 +38,7 @@ for (const folder of commandFolders) {
             const filePath = path.join(commandsPath, file);
             const command = require(filePath);
             if ("data" in command && "execute" in command) {
+                command.filePath = filePath;
                 client.commands.set(command.data.name, command);
             } else {
                 console.log(
@@ -80,10 +81,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
         }
     }
 
-    // --- Channel Category Autocomplete ---
+    // --- Channel Category Autocomplete (create & create-bulk) ---
     if (
         interaction.commandName === "channel" &&
-        interaction.options.getSubcommand() === "create" &&
+        (interaction.options.getSubcommand(false) === "create" || interaction.options.getSubcommand(false) === "create-bulk") &&
         interaction.options.getFocused(true).name === "category"
     ) {
         const focusedValue = interaction.options.getFocused();
@@ -97,13 +98,14 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     .startsWith(focusedValue.toLowerCase())
             )
             .map((category) => ({ name: category.name, value: category.id }));
-        await interaction.respond(filtered.slice(0, 25)).catch(console.error);
+        return await interaction.respond(filtered.slice(0, 25)).catch(console.error);
     }
 
-    // --- Divider Category Autocomplete ---
+    // --- Channel Divider Category Autocomplete ---
     else if (
-        interaction.commandName === "divider" &&
-        interaction.options.getSubcommand() === "category" &&
+        interaction.commandName === "channel" &&
+        interaction.options.getSubcommandGroup(false) === "divider" &&
+        interaction.options.getSubcommand(false) === "category" &&
         interaction.options.getFocused(true).name === "target_category"
     ) {
         const focusedValue = interaction.options.getFocused();
@@ -117,7 +119,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     .startsWith(focusedValue.toLowerCase())
             )
             .map((category) => ({ name: category.name, value: category.id }));
-        await interaction.respond(filtered.slice(0, 25)).catch(console.error);
+        return await interaction.respond(filtered.slice(0, 25)).catch(console.error);
     }
 
     // --- Emoji Autocomplete ---
@@ -132,7 +134,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 emoji.name.toLowerCase().includes(focusedValue.toLowerCase())
             )
             .map((emoji) => ({ name: emoji.name, value: emoji.toString() }));
-        await interaction.respond(filtered.slice(0, 25)).catch(console.error);
+        return await interaction.respond(filtered.slice(0, 25)).catch(console.error);
     }
 });
 

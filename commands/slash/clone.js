@@ -84,6 +84,22 @@ async function cloneSingleChannel(sourceChannel, targetGuild, targetParentId, ne
     return await targetGuild.channels.create(channelOptions);
 }
 
+async function fetchAllArchivedThreads(channel) {
+    const allArchived = [];
+    let before = undefined;
+    while (true) {
+        const res = await channel.threads
+            .fetchArchived({ limit: 100, before })
+            .catch(() => null);
+        if (!res || !res.threads || res.threads.size === 0) break;
+        allArchived.push(...res.threads.values());
+        if (!res.hasMore) break;
+        const last = res.threads.last();
+        before = last?.archivedAt || last?.archiveTimestamp || last?.id;
+    }
+    return allArchived;
+}
+
 async function cloneForumChannel(sourceChannel, targetGuild, targetParentId, newName, copyPerms, isCrossServer, copyTags, clonePosts, clonePostDesc, roleMap = new Map(), progressManager = null) {
     const channelOptions = {
         name: newName || sourceChannel.name,
@@ -138,9 +154,10 @@ async function cloneForumChannel(sourceChannel, targetGuild, targetParentId, new
             }
         }
 
-        const activeThreads = await sourceChannel.threads.fetch();
-        const archivedThreads = await sourceChannel.threads.fetchArchived();
-        const allThreads = [...activeThreads.threads.values(), ...archivedThreads.threads.values()]
+        const activeThreads = await sourceChannel.threads.fetch().catch(() => null);
+        const active = activeThreads?.threads ? Array.from(activeThreads.threads.values()) : [];
+        const archived = await fetchAllArchivedThreads(sourceChannel);
+        const allThreads = [...active, ...archived]
             .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
         
         if (allThreads.length > 0 && progressManager) {

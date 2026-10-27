@@ -49,10 +49,15 @@ module.exports = {
             failed: []
         };
 
+        const seenIds = new Set();
         for (const match of matches) {
             const animated = match[1] === 'a';
             const name = match[2];
             const id = match[3];
+
+            if (seenIds.has(id)) continue;
+            seenIds.add(id);
+
             const url = `https://cdn.discordapp.com/emojis/${id}.${animated ? 'gif' : 'png'}`;
 
             // Check if emoji already exists in server by ID

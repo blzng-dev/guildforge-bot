@@ -41,7 +41,7 @@ async function confirmAction(interaction, promptMessage) {
         });
 
         if (confirmation.customId === 'confirm') {
-            await confirmation.deferUpdate();
+            await confirmation.update({ content: promptMessage, components: [] });
             return true;
         } else {
             await confirmation.update({ content: 'Action cancelled.', components: [] });

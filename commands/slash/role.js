@@ -10,7 +10,8 @@ const {
   RoleSelectMenuBuilder,
   StringSelectMenuBuilder,
   ModalBuilder,
-  TextInputBuilder
+  TextInputBuilder,
+  TextInputStyle
 } = require("discord.js");
 const MESSAGES = {
   role: {
@@ -165,6 +166,7 @@ function normalizeHexColor(input) {
 
 const fs = require("node:fs/promises");
 const path = require("node:path");
+const { setTimeout: wait } = require("node:timers/promises");
 const {
   confirmAction
 } = require("../../utils/confirm.js");

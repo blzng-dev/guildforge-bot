@@ -152,7 +152,7 @@ module.exports = {
                 lastId = message.id;
 
                 // Stop if we hit the 'after' boundary
-                if (afterSnowflake && message.id <= afterSnowflake) {
+                if (afterSnowflake && BigInt(message.id) <= BigInt(afterSnowflake)) {
                     scannedCount = SAFETY_SCAN_LIMIT; // Break outer loop
                     break; 
                 }

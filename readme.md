@@ -84,10 +84,29 @@ Add visual flair to your channel list by adding prefixes (dividers).
     -   Applies a divider symbol to a single channel.
 -   **Undo Option:** All divider commands include an `undo` option to strip the prefixes.
 
+### ⚙️ Server Settings & Tags (`/server`)
+
+Manage server-wide settings and inspect members based on equipped Discord server tags / clans.
+
+-   **/server tag members**
+    -   `guild_id` *(required)*: Fetches all members in the server who have equipped a specific guild ID tag/badge.
+    -   `scope`: Search in `Current Server` (default) or `Target Server` (if the bot is in that server).
+    -   `active_only`: Filter only members actively displaying the tag (`true` by default).
+    -   Automatically attaches a formatted `.txt` file export if more than 25 members match.
+-   **/server tag user**
+    -   Inspect the equipped guild tag, badge, and clan guild ID of a specific user.
+-   **/server tag summary**
+    -   Shows a breakdown and leaderboard of all equipped guild tags across members in the current server.
+-   **/server community**
+    -   Toggle or update Discord Community features and designated rules/updates channels.
+-   **/server verification**
+    -   Set the server's verification level (None, Low, Medium, High, Highest).
+-   **/server auditlog**
+    -   `set`: Set the audit log channel.
+    -   `disable`: Disable audit logging.
+
 ### 🛠️ Utilities
 
--   **/community**
-    -   `enabled: true/false`: Toggles Discord Community features. Automatically creates "rules" and "community-updates" channels if they don't exist.
 -   **/invite**
     -   Generates an invite link for this bot or lists invite links for other popular utility bots.
 -   **/ping**

@@ -6,6 +6,7 @@ const DB_PATH = path.join(__dirname, '..', 'settings.json');
 async function readDB() {
     try {
         const data = await fs.readFile(DB_PATH, 'utf-8');
+        if (!data.trim()) return {};
         return JSON.parse(data);
     } catch (e) {
         if (e.code === 'ENOENT') {
@@ -13,7 +14,7 @@ async function readDB() {
             return {};
         }
         console.error('Error reading settings.json:', e);
-        return {};
+        return null;
     }
 }
 
@@ -27,12 +28,16 @@ async function writeDB(data) {
 
 async function getSetting(guildId, key) {
     const db = await readDB();
-    if (!db[guildId]) return null;
+    if (!db || !db[guildId]) return null;
     return db[guildId][key] || null;
 }
 
 async function setSetting(guildId, key, value) {
     const db = await readDB();
+    if (!db) {
+        console.error('Refusing to write settings.json because reading failed');
+        return;
+    }
     if (!db[guildId]) db[guildId] = {};
     db[guildId][key] = value;
     await writeDB(db);

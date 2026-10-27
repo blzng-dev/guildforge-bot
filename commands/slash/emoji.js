@@ -464,10 +464,15 @@ async function handleBulkAdd(interaction) {
         failed: []
     };
 
+    const seenIds = new Set();
     for (const match of matches) {
         const animated = match[1] === 'a';
         const name = match[2];
         const id = match[3];
+
+        if (seenIds.has(id)) continue;
+        seenIds.add(id);
+
         const url = `https://cdn.discordapp.com/emojis/${id}.${animated ? 'gif' : 'png'}`;
 
         try {
@@ -519,9 +524,13 @@ async function handleBulkDelete(interaction) {
         failed: []
     };
 
+    const seenIds = new Set();
     for (const match of matches) {
         const name = match[2];
         const id = match[3];
+
+        if (seenIds.has(id)) continue;
+        seenIds.add(id);
 
         const emojiToDel = interaction.guild.emojis.cache.get(id);
 
